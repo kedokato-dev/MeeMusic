@@ -1,32 +1,27 @@
 package com.kedokato_dev.meemusic
 
-import android.R
-import android.R.id
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kedokato_dev.meemusic.ui.theme.MeeMusicTheme
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,14 +37,12 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
-    val context = LocalContext.current // Lấy Context hiện tại
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Mee Music",
+                        text = "Tìm kiếm",
                         color = Color.Blue,
                         fontSize = 40.sp,
                         fontStyle = FontStyle.Italic,
@@ -61,55 +54,55 @@ fun MainScreen() {
             )
         }
     ) { innerPadding ->
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(innerPadding)
-                .padding(10.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center
         ) {
-            Column (
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Button(
-                    onClick = {
-                        Toast.makeText(context, "Hello", Toast.LENGTH_SHORT)
-                            .show() // Sử dụng context
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2196F3),
-                        contentColor = Color.White,
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-
-
-                    ) {
-                    Text(text = "Favorite", modifier = Modifier.padding(end = 10.dp))
-                    Icon(
-                        imageVector = Icons.Filled.Favorite,
-                        contentDescription = "Favorite",
-                        modifier = Modifier.size(24.dp)
+            Row(modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically){
+                LoadImage()
+                Spacer(modifier = Modifier.width(20.dp))
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        text = "Như anh đã thấy em",
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                        ),
+                        color = Color.Black,
                     )
-
+                    Text(
+                        text = "Tran Anh Quan",
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            textAlign = TextAlign.Center,
+                        ),
+                        color = Color.Gray,
+                    )
                 }
-                loadImage()
-
-
             }
         }
     }
 }
 
+
 @Composable
-fun loadImage() {
+fun LoadImage() {
     Image(
-        painter = painterResource(R.drawable.),
-        contentDescription = "Camera",
+        painter = painterResource(id = R.drawable.oke),
+        contentDescription = "Hình ảnh bài hát",
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .size(80.dp)
+            .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
     )
-
 }
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
