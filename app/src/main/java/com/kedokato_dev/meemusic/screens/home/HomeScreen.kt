@@ -1,6 +1,8 @@
 package com.kedokato_dev.meemusic.screens.home
 
 
+import SongViewModel
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,8 +22,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,26 +42,45 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.kedokato_dev.meemusic.R
-import com.kedokato_dev.meemusic.Song
-import com.kedokato_dev.meemusic.SongState
-import com.kedokato_dev.meemusic.SongViewModel
+import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.Repository.SongRepository
 
+
+@SuppressLint("SuspiciousIndentation")
 @Composable
-fun HomeScreen(navController: NavController, viewModel: HomeViewModel = viewModel()) {
-    val message by viewModel.message.collectAsState()
-        SongScreen()
+fun HomeScreen(navController: NavController) {
+    val repository = remember { SongRepository() }
+    val viewModel: SongViewModel = viewModel { SongViewModel(repository) } // Tạo trực tiếp
+        SongScreen(viewModel)
 }
 
 @Composable
-fun SongScreen(viewModel: SongViewModel = SongViewModel()) {
-    val state = viewModel.state.collectAsState()
+fun SongScreen(viewModel: SongViewModel = viewModel()) {
+    val state by viewModel.state.collectAsState()
 
-    when (val result = state.value) {
+    LaunchedEffect(Unit) {
+        viewModel.fetchSongs()
+    }
+
+    when (val result = state) {
         is SongState.Loading -> LoadingScreen()
         is SongState.Success -> SongList(songs = result.songs)
-        is SongState.Error -> Text(text = result.message, modifier = Modifier.padding(16.dp))
+        is SongState.Error -> Text(
+            text = result.message,
+            modifier = Modifier.padding(16.dp),
+            color = Color.Red
+        )
+
+        else -> {
+            Text(
+                text = "Không có dữ liệu!",
+                modifier = Modifier.padding(16.dp),
+                color = Color.Red
+            )
+        }
     }
 }
+
 
 @Composable
 fun SongList(songs: List<Song>) {

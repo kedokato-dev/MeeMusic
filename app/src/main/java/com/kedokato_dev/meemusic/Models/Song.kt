@@ -1,4 +1,4 @@
-package com.kedokato_dev.meemusic
+package com.kedokato_dev.meemusic.Models
 
 data class Song(
     val id: String,
