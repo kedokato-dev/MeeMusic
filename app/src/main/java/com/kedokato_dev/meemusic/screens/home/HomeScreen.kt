@@ -3,6 +3,8 @@ package com.kedokato_dev.meemusic.screens.home
 
 import SongViewModel
 import android.annotation.SuppressLint
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -41,9 +43,13 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.google.gson.Gson
 import com.kedokato_dev.meemusic.R
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.Repository.SongRepository
+import com.kedokato_dev.meemusic.navigation.Screen
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 
 @SuppressLint("SuspiciousIndentation")
@@ -51,11 +57,11 @@ import com.kedokato_dev.meemusic.Repository.SongRepository
 fun HomeScreen(navController: NavController) {
     val repository = remember { SongRepository() }
     val viewModel: SongViewModel = viewModel { SongViewModel(repository) } // Tạo trực tiếp
-        SongScreen(viewModel)
+    SongScreen(viewModel, navController)
 }
 
 @Composable
-fun SongScreen(viewModel: SongViewModel = viewModel()) {
+fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavController) {
     val state by viewModel.state.collectAsState()
 
     LaunchedEffect(Unit) {
@@ -64,7 +70,7 @@ fun SongScreen(viewModel: SongViewModel = viewModel()) {
 
     when (val result = state) {
         is SongState.Loading -> LoadingScreen()
-        is SongState.Success -> SongList(songs = result.songs)
+        is SongState.Success -> SongList(songs = result.songs, navController)
         is SongState.Error -> Text(
             text = result.message,
             modifier = Modifier.padding(16.dp),
@@ -83,7 +89,7 @@ fun SongScreen(viewModel: SongViewModel = viewModel()) {
 
 
 @Composable
-fun SongList(songs: List<Song>) {
+fun SongList(songs: List<Song>, navController: NavController) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -91,18 +97,24 @@ fun SongList(songs: List<Song>) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(songs) { song ->
-            SongItem(song)
+            SongItem(song, navController)
         }
     }
 }
 
 
 @Composable
-fun SongItem(song: Song) {
+fun SongItem(song: Song, navController: NavController) {
+    val context = LocalContext.current;
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
+            onClick = {
+                val songJson = Gson().toJson(song)
+                val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
+                navController.navigate(Screen.DetailSong.route + "/$encodedSongJson")
+            },
         elevation = CardDefaults.cardElevation(4.dp),
     ) {
         Column(
@@ -147,7 +159,7 @@ fun LoadImage(url: String) {
         modifier = Modifier
             .width(50.dp)
             .height(50.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(15.dp))
     )
 }
 
@@ -178,5 +190,5 @@ fun LoadingScreen() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun DefaultPreView() {
-    HomeScreen(navController = rememberNavController())
+
 }
