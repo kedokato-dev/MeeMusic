@@ -13,6 +13,11 @@ class MusicPlayerViewModel: ViewModel() {
         exoPlayer = ExoPlayer.Builder(context).build()
     }
 
+
+    fun pauseSong() {
+        exoPlayer?.pause()
+    }
+
     fun playSong(url: String) {
         exoPlayer?.let { player ->
             val mediaItem = MediaItem.fromUri(Uri.parse(url))

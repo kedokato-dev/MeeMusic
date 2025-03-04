@@ -190,5 +190,17 @@ fun LoadingScreen() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun DefaultPreView() {
-
+    val fakeNav = rememberNavController()
+    SongItem(song = Song(
+        id = "1",
+        title = "Title",
+        album = "Album",
+        artist = "Artist",
+        source = "Source",
+        image = "Image",
+        duration = 100,
+        favorite = false,
+        counter = 0,
+        replay = 0
+    ), navController = fakeNav)
 }
