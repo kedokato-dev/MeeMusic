@@ -47,7 +47,6 @@ import com.google.gson.Gson
 import com.kedokato_dev.meemusic.R
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.Repository.SongRepository
-import com.kedokato_dev.meemusic.navigation.Screen
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -113,7 +112,7 @@ fun SongItem(song: Song, navController: NavController) {
             onClick = {
                 val songJson = Gson().toJson(song)
                 val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
-                navController.navigate(Screen.DetailSong.route + "/$encodedSongJson")
+                navController.navigate("detailSong/$encodedSongJson") // Sử dụng trực tiếp route mới
             },
         elevation = CardDefaults.cardElevation(4.dp),
     ) {
@@ -152,8 +151,8 @@ fun LoadImage(url: String) {
             .crossfade(true)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .build(),
-        placeholder = painterResource(R.drawable.logo),
-        error = painterResource(R.drawable.logo),
+        placeholder = painterResource(R.drawable.mee_music_logo),
+        error = painterResource(R.drawable.mee_music_logo),
         contentDescription = "Ảnh tải từ mạng",
         contentScale = ContentScale.Crop,
         modifier = Modifier
