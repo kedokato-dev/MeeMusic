@@ -1,8 +1,11 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -19,10 +22,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,8 +35,8 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.MusicService
 import com.kedokato_dev.meemusic.R
-import okhttp3.internal.concurrent.formatDuration
 
 @Composable
 fun DetailSongScreen(song: Song) {
@@ -45,12 +45,11 @@ fun DetailSongScreen(song: Song) {
 
     LaunchedEffect(Unit) {
         musicPlayerViewModel.initializePlayer(context)
-        musicPlayerViewModel.playSong(song.source)
+        musicPlayerViewModel.playSong(context, song.source)
     }
 
     // Render UI
-    PlaySong(song = song, musicPlayerViewModel)
-
+    PlaySong(song = song, musicPlayerViewModel = musicPlayerViewModel)
 }
 
 @Composable
@@ -77,7 +76,6 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
             Palette.from(bitmap).generate { palette ->
                 val dominantColor = palette?.dominantSwatch?.rgb?.let { Color(it) } ?: Color.DarkGray
                 val secondaryColor = palette?.mutedSwatch?.rgb?.let { Color(it) } ?: Color.Black
-
                 backgroundBrush = Brush.verticalGradient(listOf(dominantColor, secondaryColor))
             }
         }
@@ -132,17 +130,14 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                 isPlaying = isPlaying,
                 onPlayPause = {
                     if (isPlaying) {
-                        musicPlayerViewModel.pauseSong()
+                        musicPlayerViewModel.pauseSong(context)
                     } else {
-                        musicPlayerViewModel.playSong(song.source)
+                        musicPlayerViewModel.playSong(context, song.source)
                     }
-
                 },
-                onNext = {},
-                onPrevious = {},
-                progress = if (musicPlayerViewModel.duration.value > 0)
-                    musicPlayerViewModel.currentPosition.value.toFloat() / musicPlayerViewModel.duration.value
-                else 0f,
+                onNext = { /* TODO: Thêm logic chuyển bài tiếp theo */ },
+                onPrevious = { /* TODO: Thêm logic quay lại bài trước */ },
+                progress = if (duration > 0) currentPosition.toFloat() / duration else 0f,
                 duration = musicPlayerViewModel.duration,
                 onSeek = { newProgress ->
                     val newPosition = (newProgress * musicPlayerViewModel.duration.value).toLong()
@@ -151,11 +146,9 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                 time = song.duration,
                 viewModel = musicPlayerViewModel
             )
-
         }
     }
 }
-
 
 @Composable
 fun LoadImage(url: String) {
@@ -165,8 +158,8 @@ fun LoadImage(url: String) {
             .crossfade(true)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .build(),
-        placeholder = painterResource(R.drawable.logo),
-        error = painterResource(R.drawable.logo),
+        placeholder = painterResource(R.drawable.mee_music_logo),
+        error = painterResource(R.drawable.mee_music_logo),
         contentDescription = "Ảnh tải từ mạng",
         contentScale = ContentScale.Crop,
         modifier = Modifier
@@ -212,7 +205,6 @@ fun MusicControls(
             modifier = Modifier.fillMaxWidth(0.9f)
         )
 
-
         // Hiển thị thời gian nhạc
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -224,7 +216,7 @@ fun MusicControls(
                 fontSize = 14.sp
             )
             Text(
-                text = formatTime(viewModel.duration.longValue),
+                text = formatTime(viewModel.duration.value),
                 color = Color.White,
                 fontSize = 14.sp
             )
@@ -234,10 +226,10 @@ fun MusicControls(
 
         // Điều khiển nhạc
         Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Nút Previous
             IconButton(
                 onClick = onPrevious,
                 modifier = Modifier
@@ -253,14 +245,13 @@ fun MusicControls(
                 )
             }
 
-            // Nút Play/Pause có hiệu ứng
             IconButton(
                 onClick = onPlayPause,
                 modifier = Modifier
                     .size(90.dp)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.3f))
-                    .scale(if (isPlaying) 1.1f else 1.0f) // Hiệu ứng khi bấm
+                    .scale(if (isPlaying) 1.1f else 1.0f)
             ) {
                 Icon(
                     painter = painterResource(
@@ -275,7 +266,6 @@ fun MusicControls(
                 )
             }
 
-            // Nút Next
             IconButton(
                 onClick = onNext,
                 modifier = Modifier
@@ -293,7 +283,6 @@ fun MusicControls(
         }
     }
 }
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -321,4 +310,3 @@ fun formatTime(timeMs: Long): String {
     val seconds = (timeMs / 1000) % 60
     return String.format("%02d:%02d", minutes, seconds)
 }
-

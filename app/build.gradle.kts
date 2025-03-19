@@ -54,6 +54,7 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.5.0")
 
     implementation ("androidx.palette:palette-ktx:1.0.0")
+    implementation ("androidx.media:media:1.6.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

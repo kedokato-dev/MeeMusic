@@ -1,7 +1,9 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -9,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.kedokato_dev.meemusic.MusicService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,9 +45,7 @@ class MusicPlayerViewModel : ViewModel() {
         }
     }
 
-
-
-    fun playSong(url: String) {
+    fun playSong(context: Context, url: String) {
         exoPlayer?.let { player ->
             if (currentUrl != url) {
                 val mediaItem = MediaItem.fromUri(Uri.parse(url))
@@ -53,16 +54,34 @@ class MusicPlayerViewModel : ViewModel() {
                 currentUrl = url
             }
             player.play()
-            _isPlaying.value = true // ✅ Cập nhật trạng thái
+            _isPlaying.value = true
             startProgressTracking()
+
+            // Khởi động MusicService
+            val serviceIntent = Intent(context, MusicService::class.java).apply {
+                action = "PLAY"
+                putExtra("SONG_PATH", url) // Truyền URL bài hát
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                TODO("VERSION.SDK_INT < O")
+            }
         }
     }
 
-    fun pauseSong() {
+    fun pauseSong(context: Context) {
         exoPlayer?.pause()
-        _isPlaying.value = false // ✅ Cập nhật trạng thái
-    }
+        _isPlaying.value = false
 
+        // Gửi Intent để tạm dừng MusicService
+        val serviceIntent = Intent(context, MusicService::class.java).apply {
+            action = "PAUSE"
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        }
+    }
 
     private fun startProgressTracking() {
         viewModelScope.launch {
@@ -75,12 +94,19 @@ class MusicPlayerViewModel : ViewModel() {
         }
     }
 
-
-    fun releasePlayer() {
+    fun releasePlayer(context: Context) {
         exoPlayer?.release()
         exoPlayer = null
         currentUrl = null
         _isPlaying.value = false
+
+        // Dừng MusicService
+        val serviceIntent = Intent(context, MusicService::class.java).apply {
+            action = "STOP"
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(serviceIntent)
+        }
     }
 
     fun seekTo(position: Long) {
@@ -90,6 +116,6 @@ class MusicPlayerViewModel : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        releasePlayer()
+        // Không gọi releasePlayer ở đây nếu bạn muốn giữ MusicService chạy nền
     }
 }
