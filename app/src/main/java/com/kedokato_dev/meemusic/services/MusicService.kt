@@ -15,6 +15,7 @@ class MusicService : Service() {
 
     private lateinit var mediaPlayer: MediaPlayer
     private val channelId = "music_notification_channel"
+    private var songTitle = "Mee Music"
 
 
     override fun onCreate() {
@@ -27,30 +28,40 @@ class MusicService : Service() {
 
     // Trong MusicService.kt
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        showNotification()
         intent?.let { incomingIntent ->
             when (incomingIntent.action) {
                 "PLAY" -> {
-                    // Lấy dữ liệu bài hát từ Intent (nếu có)
                     val songPath = incomingIntent.getStringExtra("SONG_PATH")
+                    songTitle = incomingIntent.getStringExtra("SONG_TITLE").toString()
                     if (songPath != null) {
                         if (mediaPlayer.isPlaying) {
                             mediaPlayer.stop()
                             mediaPlayer.reset()
                         }
                         mediaPlayer.setDataSource(songPath)
-                        mediaPlayer.prepare()
-                        mediaPlayer.start()
+                        mediaPlayer.prepareAsync()
+                        mediaPlayer.setOnPreparedListener {
+                            mediaPlayer.start()
+                            showNotification() // Cập nhật Notification khi nhạc bắt đầu phát
+                        }
                     } else if (!mediaPlayer.isPlaying) {
                         mediaPlayer.start()
+                        showNotification()
                     }
                 }
-                "PAUSE" -> if (mediaPlayer.isPlaying) mediaPlayer.pause()
+                "PAUSE" -> {
+                    if (mediaPlayer.isPlaying) {
+                        mediaPlayer.pause()
+                        showNotification() // 🎶 Cập nhật trạng thái phát/tạm dừng
+                    }
+                }
                 "STOP" -> stopSelf()
             }
-            showNotification()
         }
         return START_STICKY
     }
+
 
 
 
@@ -73,7 +84,7 @@ class MusicService : Service() {
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.mee_music_logo)
             .setContentTitle("MeeMusic")
-            .setContentText("Đang phát nhạc")
+            .setContentText(songTitle)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(playPauseAction)
@@ -96,7 +107,7 @@ class MusicService : Service() {
             0,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+                    PendingIntent.FLAG_IMMUTABLE
         )
     }
 
@@ -105,9 +116,9 @@ class MusicService : Service() {
             val channel = NotificationChannel(
                 channelId,
                 "Mee Music",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notification channel for music playback control"
+                description = "Notification channel for music playback control by Mee Music"
             }
             getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
         }

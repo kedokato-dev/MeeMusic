@@ -2,10 +2,11 @@ package com.kedokato_dev.meemusic.screens.detailSong
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -16,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 class MusicPlayerViewModel : ViewModel() {
     private var exoPlayer: ExoPlayer? = null
@@ -34,7 +36,7 @@ class MusicPlayerViewModel : ViewModel() {
             exoPlayer?.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(state: Int) {
                     if (state == Player.STATE_READY) {
-                        duration.value = maxOf(exoPlayer?.duration ?: 0L, 0L)
+                        duration.longValue = maxOf(exoPlayer?.duration ?: 0L, 0L)
                     }
                 }
 
@@ -45,10 +47,10 @@ class MusicPlayerViewModel : ViewModel() {
         }
     }
 
-    fun playSong(context: Context, url: String) {
+    fun playSong(context: Context, url: String, title: String) {
         exoPlayer?.let { player ->
             if (currentUrl != url) {
-                val mediaItem = MediaItem.fromUri(Uri.parse(url))
+                val mediaItem = MediaItem.fromUri(url.toUri())
                 player.setMediaItem(mediaItem)
                 player.prepare()
                 currentUrl = url
@@ -57,16 +59,17 @@ class MusicPlayerViewModel : ViewModel() {
             _isPlaying.value = true
             startProgressTracking()
 
-            // Khởi động MusicService
-            val serviceIntent = Intent(context, MusicService::class.java).apply {
+            val intent = Intent(context, MusicService::class.java).apply {
                 action = "PLAY"
                 putExtra("SONG_PATH", url) // Truyền URL bài hát
+                putExtra("SONG_TITLE", title) // Truyền tiêu đề bài hát
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
+                ContextCompat.startForegroundService(context, intent)
             } else {
-                TODO("VERSION.SDK_INT < O")
+                context.startService(intent)
             }
+
         }
     }
 
@@ -74,13 +77,13 @@ class MusicPlayerViewModel : ViewModel() {
         exoPlayer?.pause()
         _isPlaying.value = false
 
-        // Gửi Intent để tạm dừng MusicService
-        val serviceIntent = Intent(context, MusicService::class.java).apply {
-            action = "PAUSE"
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        }
+//        // Gửi Intent để tạm dừng MusicService
+//        val serviceIntent = Intent(context, MusicService::class.java).apply {
+//            action = "PAUSE"
+//        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            context.startForegroundService(serviceIntent)
+//        }
     }
 
     private fun startProgressTracking() {
@@ -100,13 +103,13 @@ class MusicPlayerViewModel : ViewModel() {
         currentUrl = null
         _isPlaying.value = false
 
-        // Dừng MusicService
-        val serviceIntent = Intent(context, MusicService::class.java).apply {
-            action = "STOP"
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(serviceIntent)
-        }
+//        // Dừng MusicService
+//        val serviceIntent = Intent(context, MusicService::class.java).apply {
+//            action = "STOP"
+//        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            context.startForegroundService(serviceIntent)
+//        }
     }
 
     fun seekTo(position: Long) {

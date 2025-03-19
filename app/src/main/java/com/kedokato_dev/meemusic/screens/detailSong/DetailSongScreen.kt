@@ -1,21 +1,37 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.Intent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableLongState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -35,7 +51,6 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.kedokato_dev.meemusic.Models.Song
-import com.kedokato_dev.meemusic.MusicService
 import com.kedokato_dev.meemusic.R
 
 @Composable
@@ -45,7 +60,7 @@ fun DetailSongScreen(song: Song) {
 
     LaunchedEffect(Unit) {
         musicPlayerViewModel.initializePlayer(context)
-        musicPlayerViewModel.playSong(context, song.source)
+        musicPlayerViewModel.playSong(context, song.source, song.title)
     }
 
     // Render UI
@@ -132,7 +147,7 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                     if (isPlaying) {
                         musicPlayerViewModel.pauseSong(context)
                     } else {
-                        musicPlayerViewModel.playSong(context, song.source)
+                        musicPlayerViewModel.playSong(context, song.source, song.title)
                     }
                 },
                 onNext = { /* TODO: Thêm logic chuyển bài tiếp theo */ },
@@ -140,7 +155,7 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                 progress = if (duration > 0) currentPosition.toFloat() / duration else 0f,
                 duration = musicPlayerViewModel.duration,
                 onSeek = { newProgress ->
-                    val newPosition = (newProgress * musicPlayerViewModel.duration.value).toLong()
+                    val newPosition = (newProgress * musicPlayerViewModel.duration.longValue).toLong()
                     musicPlayerViewModel.seekTo(newPosition)
                 },
                 time = song.duration,
@@ -193,13 +208,13 @@ fun MusicControls(
                 activeTrackColor = Color.White,
                 inactiveTrackColor = Color.Gray,
             ),
-            value = if (duration.value > 0) viewModel.currentPosition.value / duration.value.toFloat() else 0f,
+            value = if (duration.longValue > 0) viewModel.currentPosition.longValue / duration.longValue.toFloat() else 0f,
             onValueChange = { newValue ->
                 viewModel.isDragging.value = true
-                viewModel.currentPosition.value = (newValue * duration.value).toLong()
+                viewModel.currentPosition.longValue = (newValue * duration.longValue).toLong()
             },
             onValueChangeFinished = {
-                viewModel.seekTo(viewModel.currentPosition.value)
+                viewModel.seekTo(viewModel.currentPosition.longValue)
                 viewModel.isDragging.value = false
             },
             modifier = Modifier.fillMaxWidth(0.9f)
@@ -211,12 +226,12 @@ fun MusicControls(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = formatTime(viewModel.currentPosition.value),
+                text = formatTime(viewModel.currentPosition.longValue),
                 color = Color.White,
                 fontSize = 14.sp
             )
             Text(
-                text = formatTime(viewModel.duration.value),
+                text = formatTime(viewModel.duration.longValue),
                 color = Color.White,
                 fontSize = 14.sp
             )
@@ -235,7 +250,7 @@ fun MusicControls(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f))
+//                    .background(Color.White.copy(alpha = 0.2f))
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.skip_previous_24dp_e3e3e3_fill0_wght400_grad0_opsz24),
@@ -250,7 +265,7 @@ fun MusicControls(
                 modifier = Modifier
                     .size(90.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.3f))
+//                    .background(Color.White.copy(alpha = 0.3f))
                     .scale(if (isPlaying) 1.1f else 1.0f)
             ) {
                 Icon(
@@ -271,7 +286,7 @@ fun MusicControls(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.2f))
+//                    .background(Color.White.copy(alpha = 0.2f))
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.skip_next_24dp_e3e3e3_fill0_wght400_grad0_opsz24),
