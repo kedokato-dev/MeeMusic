@@ -1,6 +1,8 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
+import android.R.attr.action
 import android.annotation.SuppressLint
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableLongState
 import androidx.compose.runtime.collectAsState
@@ -52,6 +55,8 @@ import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.R
+import kotlin.text.toLong
+import kotlin.times
 
 @Composable
 fun DetailSongScreen(song: Song) {
@@ -59,8 +64,16 @@ fun DetailSongScreen(song: Song) {
     val musicPlayerViewModel: MusicPlayerViewModel = viewModel()
 
     LaunchedEffect(Unit) {
-        musicPlayerViewModel.initializePlayer(context)
+        // Register position receiver
+        musicPlayerViewModel.registerPositionReceiver(context)
         musicPlayerViewModel.playSong(context, song.source, song.title)
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            // Clean up when screen is disposed
+            musicPlayerViewModel.unregisterPositionReceiver(context)
+        }
     }
 
     // Render UI
@@ -141,6 +154,7 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
+
             MusicControls(
                 isPlaying = isPlaying,
                 onPlayPause = {
@@ -152,11 +166,11 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                 },
                 onNext = { /* TODO: Thêm logic chuyển bài tiếp theo */ },
                 onPrevious = { /* TODO: Thêm logic quay lại bài trước */ },
-                progress = if (duration > 0) currentPosition.toFloat() / duration else 0f,
+                progress = musicPlayerViewModel.progress,
                 duration = musicPlayerViewModel.duration,
                 onSeek = { newProgress ->
                     val newPosition = (newProgress * musicPlayerViewModel.duration.longValue).toLong()
-                    musicPlayerViewModel.seekTo(newPosition)
+                    musicPlayerViewModel.currentPosition.longValue = newPosition
                 },
                 time = song.duration,
                 viewModel = musicPlayerViewModel
@@ -194,27 +208,28 @@ fun MusicControls(
     onSeek: (Float) -> Unit,
     time: Int,
     viewModel: MusicPlayerViewModel
-) {
+){
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Thanh trượt bài hát
+        val context = LocalContext.current
+
         Slider(
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
                 activeTrackColor = Color.White,
                 inactiveTrackColor = Color.Gray,
             ),
-            value = if (duration.longValue > 0) viewModel.currentPosition.longValue / duration.longValue.toFloat() else 0f,
+            value = viewModel.progress,
             onValueChange = { newValue ->
                 viewModel.isDragging.value = true
                 viewModel.currentPosition.longValue = (newValue * duration.longValue).toLong()
             },
             onValueChangeFinished = {
-                viewModel.seekTo(viewModel.currentPosition.longValue)
+                viewModel.seekTo(context, viewModel.currentPosition.longValue)
                 viewModel.isDragging.value = false
             },
             modifier = Modifier.fillMaxWidth(0.9f)
@@ -250,7 +265,6 @@ fun MusicControls(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-//                    .background(Color.White.copy(alpha = 0.2f))
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.skip_previous_24dp_e3e3e3_fill0_wght400_grad0_opsz24),
@@ -265,7 +279,6 @@ fun MusicControls(
                 modifier = Modifier
                     .size(90.dp)
                     .clip(CircleShape)
-//                    .background(Color.White.copy(alpha = 0.3f))
                     .scale(if (isPlaying) 1.1f else 1.0f)
             ) {
                 Icon(
@@ -286,7 +299,6 @@ fun MusicControls(
                 modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
-//                    .background(Color.White.copy(alpha = 0.2f))
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.skip_next_24dp_e3e3e3_fill0_wght400_grad0_opsz24),
@@ -320,7 +332,7 @@ fun DefaultPreView() {
 }
 
 @SuppressLint("DefaultLocale")
-fun formatTime(timeMs: Long): String {
+private fun formatTime(timeMs: Long): String {
     val minutes = (timeMs / 1000) / 60
     val seconds = (timeMs / 1000) % 60
     return String.format("%02d:%02d", minutes, seconds)
