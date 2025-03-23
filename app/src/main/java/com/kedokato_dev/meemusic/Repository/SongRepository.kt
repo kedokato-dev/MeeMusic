@@ -16,4 +16,28 @@ class SongRepository {
             null
         }
     }
+
+    suspend fun getNextSong(currentSongId: String?): Song? {
+        val songs = getSongs()
+        if (songs.isNullOrEmpty()) return null
+
+        val currentIndex = songs.indexOfFirst { it.id == currentSongId }
+        return if (currentIndex != -1 && currentIndex < songs.size - 1) {
+            songs[currentIndex + 1]
+        } else {
+            songs.firstOrNull()
+        }
+    }
+
+    suspend fun getPreviousSong(currentSongId: String?): Song? {
+        val songs = getSongs()
+        if (songs.isNullOrEmpty()) return null
+
+        val currentIndex = songs.indexOfFirst { it.id == currentSongId }
+        return if (currentIndex != -1 && currentIndex > 0) {
+            songs[currentIndex - 1]
+        } else {
+            songs.lastOrNull()
+        }
+    }
 }

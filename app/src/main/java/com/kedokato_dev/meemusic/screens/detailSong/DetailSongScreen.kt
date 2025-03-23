@@ -1,7 +1,10 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -67,6 +71,9 @@ fun DetailSongScreen(song: Song) {
         viewModel(viewModelStoreOwner = LocalViewModelStoreOwner.current!!)
     val currentSongInMainViewModel by mainViewModel.currentSong.collectAsState()
     val isPlayingInMainViewModel by mainViewModel.isPlaying.collectAsState()
+
+    // Sử dụng state để theo dõi bài hát hiện tại
+    var currentDisplayedSong by remember { mutableStateOf(song) }
 
     LaunchedEffect(Unit) {
         // Đăng ký bộ nhận vị trí cho cả hai trường hợp
@@ -100,14 +107,59 @@ fun DetailSongScreen(song: Song) {
     }
 
     DisposableEffect(Unit) {
+        val songUpdateReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "MUSIC_EVENT") {
+                    val action = intent.getStringExtra("ACTION")
+                    if (action == "NEXT" || action == "PREVIOUS") {
+                        // Lấy thông tin bài hát mới
+                        val songId = intent.getStringExtra("SONG_ID") ?: return
+                        val songTitle = intent.getStringExtra("SONG_TITLE") ?: return
+                        val songArtist = intent.getStringExtra("SONG_ARTIST") ?: return
+                        val songImage = intent.getStringExtra("SONG_IMAGE") ?: return
+                        val songSource = intent.getStringExtra("SONG_SOURCE") ?: return
+                        val songAlbum = intent.getStringExtra("SONG_ALBUM") ?: return
+
+                        // Tạo đối tượng Song mới
+                        val updatedSong = Song(
+                            id = songId,
+                            title = songTitle,
+                            artist = songArtist,
+                            image = songImage,
+                            source = songSource,
+                            album = songAlbum,
+                            duration = currentDisplayedSong.duration,
+                            favorite = currentDisplayedSong.favorite,
+                            counter = currentDisplayedSong.counter,
+                            replay = currentDisplayedSong.replay
+                        )
+
+                        // Cập nhật UI với bài hát mới
+                        currentDisplayedSong = updatedSong
+
+                        // Cập nhật trong MainViewModel
+                        mainViewModel.updateCurrentSong(updatedSong)
+                    }
+                }
+            }
+        }
+
+        // Đăng ký receiver
+        val filter = IntentFilter("MUSIC_EVENT")
+        ContextCompat.registerReceiver(
+            context,
+            songUpdateReceiver,
+            filter,
+            ContextCompat.RECEIVER_EXPORTED
+        )
+
         onDispose {
-            // Dọn dẹp khi màn hình bị hủy
-            musicPlayerViewModel.unregisterPositionReceiver(context)
+            context.unregisterReceiver(songUpdateReceiver)
         }
     }
 
     // Hiển thị giao diện người dùng
-    PlaySong(song = song, musicPlayerViewModel = musicPlayerViewModel)
+    PlaySong(song = currentDisplayedSong, musicPlayerViewModel = musicPlayerViewModel)
 
 }
 
@@ -200,8 +252,12 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                         }
                     }
                 },
-                onNext = { /* TODO: Thêm logic chuyển bài tiếp theo */ },
-                onPrevious = { /* TODO: Thêm logic quay lại bài trước */ },
+                onNext = {
+                    musicPlayerViewModel.playNextSong(context)
+                },
+                onPrevious = {
+                    musicPlayerViewModel.playPreviousSong(context)
+                },
                 progress = musicPlayerViewModel.progress,
                 duration = musicPlayerViewModel.duration,
                 onSeek = { newProgress ->

@@ -29,6 +29,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import coil.Coil
 import coil.request.ImageRequest
 import coil.transform.CircleCropTransformation
+import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.Repository.SongRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -42,6 +44,7 @@ class MusicService : Service() {
     private val ACTION_PAUSE = "com.kedokato_dev.meemusic.ACTION_PAUSE"
     private val ACTION_PREVIOUS = "com.kedokato_dev.meemusic.ACTION_PREVIOUS"
     private val ACTION_NEXT = "com.kedokato_dev.meemusic.ACTION_NEXT"
+    private val ACTION_CLOSE = "com.kedokato_dev.meemusic.ACTION_CLOSE"
 
     private var mediaPlayer: MediaPlayer? = null
     private var mediaSession: MediaSessionCompat? = null
@@ -80,6 +83,7 @@ class MusicService : Service() {
             addAction(ACTION_PAUSE)
             addAction(ACTION_PREVIOUS)
             addAction(ACTION_NEXT)
+            addAction(ACTION_CLOSE)
         }
         registerReceiver(notificationActionReceiver, intentFilter)
     }
@@ -104,16 +108,85 @@ class MusicService : Service() {
                 // Update notification with current state
                 updateNotification()
             }
-            ACTION_NEXT -> {
+            "NEXT", ACTION_NEXT -> {
                 // Xử lý chuyển bài hát tiếp theo
-                broadcastEvent("NEXT")
+                playNextSong()
             }
-            ACTION_PREVIOUS -> {
+            "PREVIOUS" ,ACTION_PREVIOUS -> {
                 // Xử lý quay lại bài hát trước
-                broadcastEvent("PREVIOUS")
+                playPreviousSong()
+            }
+            ACTION_CLOSE -> closeService()
+        }
+
+        return START_NOT_STICKY
+    }
+
+
+    private fun playNextSong() {
+        Log.d("MusicService", "Bắt đầu tìm bài hát tiếp theo với currentSongId: $currentSongId")
+        CoroutineScope(Dispatchers.IO).launch {
+            val nextSong = SongRepository().getNextSong(currentSongId)
+            nextSong?.let {
+                withContext(Dispatchers.Main) {
+                    playSong(it.source)
+                    Log.d("nextSong", "🎵 Bài hát tiếp theo: ${it.title}")
+                    currentSongTitle = it.title
+                    currentSongArtist = it.artist
+                    currentSongImage = it.image
+                    currentSongId = it.id
+
+                    val intent = Intent("MUSIC_EVENT")
+                    intent.putExtra("ACTION", "NEXT")
+                    intent.putExtra("SONG_ID", it.id)
+                    intent.putExtra("SONG_TITLE", it.title)
+                    intent.putExtra("SONG_ARTIST", it.artist)
+                    intent.putExtra("SONG_IMAGE", it.image)
+                    intent.putExtra("SONG_SOURCE", it.source)
+                    intent.putExtra("SONG_ALBUM", it.album)
+                    sendBroadcast(intent)
+
+                    updateNotification()
+                }
             }
         }
-        return START_NOT_STICKY
+    }
+
+    private fun playPreviousSong() {
+        Log.d("MusicService", "Bắt đầu tìm bài hát trước với currentSongId: $currentSongId")
+        CoroutineScope(Dispatchers.IO).launch {
+            val previousSong = SongRepository().getPreviousSong(currentSongId)
+            previousSong?.let {
+                withContext(Dispatchers.Main) {
+                    playSong(it.source)
+                    Log.d("previousSong", "🎵 Bài hát trước: ${it.title}")
+                    currentSongTitle = it.title
+                    currentSongArtist = it.artist
+                    currentSongImage = it.image
+                    currentSongId = it.id
+
+                    val intent = Intent("MUSIC_EVENT")
+                    intent.putExtra("ACTION", "PREVIOUS")
+                    intent.putExtra("SONG_ID", it.id)
+                    intent.putExtra("SONG_TITLE", it.title)
+                    intent.putExtra("SONG_ARTIST", it.artist)
+                    intent.putExtra("SONG_IMAGE", it.image)
+                    intent.putExtra("SONG_SOURCE", it.source)
+                    intent.putExtra("SONG_ALBUM", it.album)
+                    sendBroadcast(intent)
+
+                    updateNotification()
+                }
+            }
+        }
+    }
+
+    private fun closeService() {
+        stopPositionUpdates()
+        exoPlayer?.release()
+        exoPlayer = null
+        stopForeground(true)
+        stopSelf()
     }
 
 
@@ -226,7 +299,7 @@ class MusicService : Service() {
     private fun updateNotification() {
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                // Default bitmap if image loading fails
+
                 var albumArt: Bitmap? = null
 
                 // Load album art image
@@ -240,12 +313,8 @@ class MusicService : Service() {
 
                 // If music is paused, remove foreground but keep notification visible
                 if (!isPlaying) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        stopForeground(STOP_FOREGROUND_DETACH)
-                    } else {
-                        stopForeground(false)
-                    }
-                    // Update notification even when paused
+                    stopForeground(STOP_FOREGROUND_DETACH)
+
                     NotificationManagerCompat.from(this@MusicService).notify(NOTIFICATION_ID, notification)
                 }
             } catch (e: Exception) {
@@ -307,6 +376,12 @@ class MusicService : Service() {
             createPendingIntent(ACTION_NEXT)
         )
 
+        val closeAction = NotificationCompat.Action(
+            R.drawable.close48,
+            "Close",
+            createPendingIntent(ACTION_CLOSE)
+        )
+
         // Build notification
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.mee_music)
@@ -319,6 +394,7 @@ class MusicService : Service() {
             .addAction(previousAction)
             .addAction(playPauseAction)
             .addAction(nextAction)
+            .addAction(closeAction)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
@@ -340,8 +416,9 @@ class MusicService : Service() {
             when (intent?.action) {
                 ACTION_PLAY -> resumeSong()
                 ACTION_PAUSE -> pauseSong()
-                ACTION_PREVIOUS -> broadcastEvent("PREVIOUS")
-                ACTION_NEXT -> broadcastEvent("NEXT")
+                ACTION_PREVIOUS -> playPreviousSong()
+                ACTION_NEXT -> playNextSong()
+                ACTION_CLOSE -> closeService()
             }
         }
     }

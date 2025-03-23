@@ -84,7 +84,7 @@ fun HomeScreen(navController: NavController) {
                             // Resume music
                             val intent = Intent(context, MusicService::class.java).apply {
                                 action = "RESUME"
-                                putExtra("SEEK_POSITION", 0L) // This can be improved by storing current position
+                                putExtra("SEEK_POSITION", 122L) // This can be improved by storing current position
                             }
                             context.startService(intent)
                             mainViewModel.updatePlaybackState(true)

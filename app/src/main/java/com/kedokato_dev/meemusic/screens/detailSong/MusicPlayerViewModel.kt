@@ -58,8 +58,9 @@ class MusicPlayerViewModel : ViewModel() {
                                 _isPlaying.value = false
                                 currentPosition.longValue = 0
                             }
-                            "PREVIOUS", "NEXT" -> {
-                                // Handle these events if needed
+                            "NEXT" -> {
+                                currentPosition.longValue = 0
+                               _isPlaying.value = true
                             }
                         }
                     }
@@ -103,6 +104,16 @@ class MusicPlayerViewModel : ViewModel() {
                 context.startService(intent)
             }
         }
+    }
+
+    fun playNextSong(context: Context) {
+        sendCommandToService(context, "NEXT")
+        _isPlaying.value = false
+    }
+
+    fun playPreviousSong(context: Context) {
+        sendCommandToService(context, "PREVIOUS")
+        _isPlaying.value = false
     }
 
      fun resumeSong(context: Context) {
