@@ -1,6 +1,5 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
-import android.R.attr.action
 import android.annotation.SuppressLint
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -46,6 +45,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.drawable.toBitmap
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.palette.graphics.Palette
 import coil.ImageLoader
@@ -54,31 +54,63 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.MusicService
 import com.kedokato_dev.meemusic.R
-import kotlin.text.toLong
-import kotlin.times
+import com.kedokato_dev.meemusic.screens.MainViewModel
+import kotlin.compareTo
 
 @Composable
 fun DetailSongScreen(song: Song) {
     val context = LocalContext.current
     val musicPlayerViewModel: MusicPlayerViewModel = viewModel()
+    val mainViewModel: MainViewModel =
+        viewModel(viewModelStoreOwner = LocalViewModelStoreOwner.current!!)
+    val currentSongInMainViewModel by mainViewModel.currentSong.collectAsState()
+    val isPlayingInMainViewModel by mainViewModel.isPlaying.collectAsState()
 
     LaunchedEffect(Unit) {
-        // Register position receiver
+        // Đăng ký bộ nhận vị trí cho cả hai trường hợp
         musicPlayerViewModel.registerPositionReceiver(context)
-        musicPlayerViewModel.playSong(context, song.source, song.title)
+
+        // Kiểm tra xem bài hát hiện tại đã được tải hay chưa
+        val isSameSong = currentSongInMainViewModel?.id == song.id
+
+        if (!isSameSong) {
+            // Nếu là bài hát mới, phát từ đầu
+            val intent = Intent(context, MusicService::class.java).apply {
+                action = "PLAY"
+                putExtra("SONG_PATH", song.source)
+                putExtra("SONG_TITLE", song.title)
+                putExtra("SONG_ARTIST", song.artist)
+                putExtra("SONG_IMAGE", song.image)
+                putExtra("SONG_ID", song.id)
+            }
+            context.startService(intent)
+            mainViewModel.updateCurrentSong(song)
+            mainViewModel.updatePlaybackState(true)
+        } else if (!isPlayingInMainViewModel) {
+            // Nếu cùng bài hát nhưng đang tạm dừng, tiếp tục phát
+            val intent = Intent(context, MusicService::class.java).apply {
+                action = "RESUME"
+            }
+            context.startService(intent)
+            mainViewModel.updatePlaybackState(true)
+        }
+
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            // Clean up when screen is disposed
+            // Dọn dẹp khi màn hình bị hủy
             musicPlayerViewModel.unregisterPositionReceiver(context)
         }
     }
 
-    // Render UI
+    // Hiển thị giao diện người dùng
     PlaySong(song = song, musicPlayerViewModel = musicPlayerViewModel)
+
 }
+
 
 @Composable
 fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
@@ -88,8 +120,8 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
         mutableStateOf(Brush.verticalGradient(listOf(Color.Black, Color.DarkGray)))
     }
 
-    val currentPosition by musicPlayerViewModel.currentPosition
-    val duration by musicPlayerViewModel.duration
+//    val currentPosition by musicPlayerViewModel.currentPosition
+//    val duration by musicPlayerViewModel.duration
 
     LaunchedEffect(song.image) {
         val imageLoader = ImageLoader(context)
@@ -161,7 +193,11 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                     if (isPlaying) {
                         musicPlayerViewModel.pauseSong(context)
                     } else {
-                        musicPlayerViewModel.playSong(context, song.source, song.title)
+                        if (musicPlayerViewModel.currentPosition.longValue > 0) {
+                            musicPlayerViewModel.resumeSong(context)
+                        } else {
+                            musicPlayerViewModel.playSong(context, song)
+                        }
                     }
                 },
                 onNext = { /* TODO: Thêm logic chuyển bài tiếp theo */ },

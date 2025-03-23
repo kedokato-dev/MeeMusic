@@ -10,12 +10,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.MusicService
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class MusicPlayerViewModel : ViewModel() {
@@ -34,43 +33,43 @@ class MusicPlayerViewModel : ViewModel() {
     val progress: Float
         get() = if (duration.longValue > 0) currentPosition.longValue.toFloat() / duration.longValue else 0f
 
-    init {
-        startPositionUpdater()
-    }
-
-    private fun startPositionUpdater() {
-        viewModelScope.launch(Dispatchers.IO) {
-            while (isActive) {
-                if (_isPlaying.value && !isDragging.value) {
-                    // Only update UI if playing and not dragging
-                    currentPosition.longValue += 200
-                }
-                delay(200) // Update roughly 5 times per second
-            }
-        }
-    }
-
     fun registerPositionReceiver(context: Context) {
         positionUpdateReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
                 when (intent.action) {
-                    "UPDATE_POSITION" -> {
-                        currentPosition.longValue = intent.getLongExtra("CURRENT_POSITION", 0L)
+                    "POSITION_UPDATE" -> {
+                        if (!isDragging.value) {
+                            val position = intent.getLongExtra("POSITION", 0L)
+                            val audioDuration = intent.getLongExtra("DURATION", 0L)
+
+                            currentPosition.longValue = position
+                            duration.longValue = audioDuration
+                        }
                     }
-                    "UPDATE_DURATION" -> {
-                        duration.longValue = intent.getLongExtra("DURATION", 0L)
-                    }
-                    "PLAYBACK_STATE_CHANGED" -> {
-                        _isPlaying.value = intent.getBooleanExtra("IS_PLAYING", false)
+                    "MUSIC_EVENT" -> {
+                        when (intent.getStringExtra("ACTION")) {
+                            "LOADING" -> {
+                                _isPlaying.value = false
+                            }
+                            "LOADED" -> _isPlaying.value = true
+                            "PAUSED" -> _isPlaying.value = false
+                            "RESUMED" -> _isPlaying.value = true
+                            "COMPLETED" -> {
+                                _isPlaying.value = false
+                                currentPosition.longValue = 0
+                            }
+                            "PREVIOUS", "NEXT" -> {
+                                // Handle these events if needed
+                            }
+                        }
                     }
                 }
             }
         }
 
         val intentFilter = IntentFilter().apply {
-            addAction("UPDATE_POSITION")
-            addAction("UPDATE_DURATION")
-            addAction("PLAYBACK_STATE_CHANGED")
+            addAction("POSITION_UPDATE")
+            addAction("MUSIC_EVENT")
         }
         ContextCompat.registerReceiver(
             context,
@@ -80,6 +79,8 @@ class MusicPlayerViewModel : ViewModel() {
         )
     }
 
+
+
     fun unregisterPositionReceiver(context: Context) {
         positionUpdateReceiver?.let {
             context.unregisterReceiver(it)
@@ -87,21 +88,25 @@ class MusicPlayerViewModel : ViewModel() {
         }
     }
 
-    fun playSong(context: Context, url: String, title: String) {
-        if (url == currentSongUrl && lastPlayedPosition > 0) {
-            // Resume from last position if it's the same song
-            resumeSong(context)
-        } else {
-            // Start new song
-            currentSongUrl = url
-            sendCommandToService(context, "PLAY", url, title)
-            _isPlaying.value = true
-            currentPosition.longValue = 0
+    fun playSong(context: Context,  song: Song) {
+        Intent(context, MusicService::class.java).also { intent ->
+            intent.action = "PLAY"
+            intent.putExtra("SONG_PATH", song.source)
+            intent.putExtra("SONG_TITLE", song.title)
+            intent.putExtra("SONG_ARTIST", song.artist)
+            intent.putExtra("SONG_IMAGE", song.image)
+            intent.putExtra("SONG_ID", song.id)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(context, intent)
+            } else {
+                context.startService(intent)
+            }
         }
     }
 
-    private fun resumeSong(context: Context) {
-        sendCommandToService(context, "RESUME", position = lastPlayedPosition)
+     fun resumeSong(context: Context) {
+        sendCommandToService(context, "RESUME")
         _isPlaying.value = true
     }
 
@@ -119,20 +124,17 @@ class MusicPlayerViewModel : ViewModel() {
     }
 
     fun seekTo(context: Context, position: Long) {
-        sendCommandToService(context, "SEEK", position = position)
+        sendCommandToService(context, "SEEK_POSITION", position = position)
         currentPosition.longValue = position
         lastPlayedPosition = position
     }
 
     private fun sendCommandToService(
-        context: Context, action: String, url: String? = null,
-        title: String? = null, position: Long? = null
+        context: Context, action: String, position: Long? = null
     ) {
         val intent = Intent(context, MusicService::class.java).apply {
             this.action = action
-            url?.let { putExtra("SONG_PATH", it) }
-            title?.let { putExtra("SONG_TITLE", it) }
-            position?.let { putExtra("SEEK_POSITION", it) }
+            position?.let { putExtra("POSITION", it) }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ContextCompat.startForegroundService(context, intent)
@@ -140,6 +142,7 @@ class MusicPlayerViewModel : ViewModel() {
             context.startService(intent)
         }
     }
+
 
     override fun onCleared() {
         super.onCleared()

@@ -1,11 +1,9 @@
 package com.kedokato_dev.meemusic.screens.home
 
-
 import SongViewModel
 import android.annotation.SuppressLint
-import android.widget.Toast
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import android.content.Intent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,33 +33,84 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.gson.Gson
-import com.kedokato_dev.meemusic.R
+import com.kedokato_dev.meemusic.MusicService
 import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.R
 import com.kedokato_dev.meemusic.Repository.SongRepository
+import com.kedokato_dev.meemusic.components.MiniPlayer
+import com.kedokato_dev.meemusic.screens.MainViewModel
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-
 
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun HomeScreen(navController: NavController) {
     val repository = remember { SongRepository() }
-    val viewModel: SongViewModel = viewModel { SongViewModel(repository) } // Tạo trực tiếp
-    SongScreen(viewModel, navController)
+    val viewModel: SongViewModel = viewModel { SongViewModel(repository) }
+    val mainViewModel: MainViewModel = viewModel(viewModelStoreOwner = LocalViewModelStoreOwner.current!!)
+    val currentSong by mainViewModel.currentSong.collectAsState()
+    val isPlaying by mainViewModel.isPlaying.collectAsState()
+    val context = LocalContext.current
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Song list takes most of the screen
+            Box(modifier = Modifier.weight(1f)) {
+                SongScreen(viewModel, navController)
+            }
+
+            // Mini player at the bottom if a song is playing
+            currentSong?.let {
+                MiniPlayer(
+                    song = it,
+                    isPlaying = isPlaying,
+                    onPlayPauseClick = {
+                        if (isPlaying) {
+                            // Pause music
+                            val intent = Intent(context, MusicService::class.java).apply {
+                                action = "PAUSE"
+                            }
+                            context.startService(intent)
+                            mainViewModel.updatePlaybackState(false)
+                        } else {
+                            // Resume music
+                            val intent = Intent(context, MusicService::class.java).apply {
+                                action = "RESUME"
+                                putExtra("SEEK_POSITION", 0L) // This can be improved by storing current position
+                            }
+                            context.startService(intent)
+                            mainViewModel.updatePlaybackState(true)
+                        }
+                    },
+                    onPlayerClick = { song ->
+                        // Navigate to detail screen without restarting playback
+                        val songJson = Gson().toJson(song)
+                        val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
+                        navController.navigate("detailSong/$encodedSongJson") {
+                            // Prevent multiple copies of the same destination in the back stack
+                            launchSingleTop = true
+                            // We don't need to change playback state, just navigate
+                        }
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable
 fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavController) {
     val state by viewModel.state.collectAsState()
+    val context = LocalContext.current
+    val mainViewModel: MainViewModel = viewModel(viewModelStoreOwner = LocalViewModelStoreOwner.current!!)
 
     LaunchedEffect(Unit) {
         viewModel.fetchSongs()
@@ -69,13 +118,36 @@ fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavControl
 
     when (val result = state) {
         is SongState.Loading -> LoadingScreen()
-        is SongState.Success -> SongList(songs = result.songs, navController)
+        is SongState.Success -> SongList(
+            songs = result.songs,
+            navController = navController,
+            onSongClick = { song ->
+                // Start playing the song and navigate to detail
+                val intent = Intent(context, MusicService::class.java).apply {
+                    action = "PLAY"
+                    putExtra("SONG_PATH", song.source)
+                    putExtra("SONG_TITLE", song.title)
+                    putExtra("SONG_ARTIST", song.artist)
+                    putExtra("SONG_IMAGE", song.image)
+                    putExtra("SONG_ID", song.id)
+                }
+                context.startService(intent)
+
+                // Update MainViewModel
+                mainViewModel.updateCurrentSong(song)
+                mainViewModel.updatePlaybackState(true)
+
+                // Navigate to detail screen
+                val songJson = Gson().toJson(song)
+                val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
+                navController.navigate("detailSong/$encodedSongJson")
+            }
+        )
         is SongState.Error -> Text(
             text = result.message,
             modifier = Modifier.padding(16.dp),
             color = Color.Red
         )
-
         else -> {
             Text(
                 text = "Không có dữ liệu!",
@@ -86,34 +158,29 @@ fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavControl
     }
 }
 
-
 @Composable
-fun SongList(songs: List<Song>, navController: NavController) {
+fun SongList(songs: List<Song>, navController: NavController, onSongClick: (Song) -> Unit) {
+    // Add padding at the bottom to ensure content isn't covered by mini player
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(10.dp)
     ) {
         items(songs) { song ->
-            SongItem(song, navController)
+            SongItem(song, onSongClick)
         }
+        // Add some space at the bottom to prevent content being hidden by mini player
+        item { Spacer(modifier = Modifier.height(70.dp)) }
     }
 }
 
-
 @Composable
-fun SongItem(song: Song, navController: NavController) {
-    val context = LocalContext.current;
+fun SongItem(song: Song, onSongClick: (Song) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
-            onClick = {
-                val songJson = Gson().toJson(song)
-                val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
-                navController.navigate("detailSong/$encodedSongJson") // Sử dụng trực tiếp route mới
-            },
+        onClick = { onSongClick(song) },
         elevation = CardDefaults.cardElevation(4.dp),
     ) {
         Column(
@@ -124,7 +191,7 @@ fun SongItem(song: Song, navController: NavController) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.Center
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
                 ) {
                     Text(
                         text = song.title,
@@ -168,10 +235,10 @@ fun LoadingScreen() {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator( // Hiệu ứng vòng tròn loading
+        CircularProgressIndicator(
             modifier = Modifier.size(50.dp),
             color = MaterialTheme.colorScheme.primary,
             strokeWidth = 4.dp
@@ -180,26 +247,7 @@ fun LoadingScreen() {
         Text(
             text = "MeeMusic đang tải dữ liệu...",
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Gray
+            color = Color.Black
         )
     }
-}
-
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun DefaultPreView() {
-    val fakeNav = rememberNavController()
-    SongItem(song = Song(
-        id = "1",
-        title = "Title",
-        album = "Album",
-        artist = "Artist",
-        source = "Source",
-        image = "Image",
-        duration = 100,
-        favorite = false,
-        counter = 0,
-        replay = 0
-    ), navController = fakeNav)
 }

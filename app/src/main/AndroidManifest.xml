@@ -37,6 +37,17 @@
             android:foregroundServiceType="mediaPlayback"
             tools:ignore="ForegroundServicePermission" />
 
+        <receiver
+            android:name=".MusicActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.kedokato_dev.meemusic.ACTION_PLAY" />
+                <action android:name="com.kedokato_dev.meemusic.ACTION_PAUSE" />
+                <action android:name="com.kedokato_dev.meemusic.ACTION_PREVIOUS" />
+                <action android:name="com.kedokato_dev.meemusic.ACTION_NEXT" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

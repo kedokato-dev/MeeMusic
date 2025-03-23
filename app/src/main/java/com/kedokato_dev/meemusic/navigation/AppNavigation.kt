@@ -2,10 +2,12 @@ package com.kedokato_dev.meemusic.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.*
 import androidx.navigation.compose.*
 import com.google.gson.Gson
 import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.screens.MainViewModel
 import com.kedokato_dev.meemusic.screens.detailSong.DetailSongScreen
 import com.kedokato_dev.meemusic.screens.home.HomeScreen
 import com.kedokato_dev.meemusic.screens.library.LibraryScreen
@@ -16,6 +18,7 @@ import java.nio.charset.StandardCharsets
 
 @Composable
 fun AppNavigation(navController: NavHostController, modifier: Modifier = Modifier) {
+    val mainViewModel: MainViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = "home",

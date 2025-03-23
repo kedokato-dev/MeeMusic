@@ -11,8 +11,6 @@ import androidx.navigation.compose.rememberNavController
 fun MainScreen() {
     val navController = rememberNavController()
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
-
-
     // Kiểm tra nếu không phải màn hình DetailSong thì hiển thị BottomNavigationBar
     val showBottomBar = currentBackStackEntry?.destination?.route?.startsWith("detailSong") == false
 
