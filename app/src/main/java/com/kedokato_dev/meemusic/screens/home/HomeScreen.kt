@@ -3,30 +3,13 @@ package com.kedokato_dev.meemusic.screens.home
 import SongViewModel
 import android.annotation.SuppressLint
 import android.content.Intent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -73,7 +58,7 @@ fun HomeScreen(navController: NavController) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Song list takes most of the screen
             Box(modifier = Modifier.weight(1f)) {
-                SongScreen(viewModel, navController)
+                HomeContent(viewModel, navController)
             }
 
             // Mini player at the bottom if a song is playing
@@ -93,7 +78,7 @@ fun HomeScreen(navController: NavController) {
                             // Resume music
                             val intent = Intent(context, MusicService::class.java).apply {
                                 action = "RESUME"
-                                putExtra("SEEK_POSITION", 0L) // This can be improved by storing current position
+                                putExtra("SEEK_POSITION", 0L)
                             }
                             context.startService(intent)
                             mainViewModel.updatePlaybackState(true)
@@ -116,7 +101,7 @@ fun HomeScreen(navController: NavController) {
                         mainViewModel.updatePlaybackState(true)
                     },
                     onPreviousClick = {
-                       // Play previous song
+                        // Play previous song
                         val intent = Intent(context, MusicService::class.java).apply {
                             action = "PREVIOUS"
                         }
@@ -130,7 +115,7 @@ fun HomeScreen(navController: NavController) {
 }
 
 @Composable
-fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavController) {
+fun HomeContent(viewModel: SongViewModel, navController: NavController) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val mainViewModel: MainViewModel = viewModel(viewModelStoreOwner = LocalViewModelStoreOwner.current!!)
@@ -141,8 +126,12 @@ fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavControl
 
     when (val result = state) {
         is SongState.Loading -> LoadingScreen()
-        is SongState.Success -> SongList(
-            songs = result.songs,
+        is SongState.Success -> CategorySongList(
+            randomSongs = result.randomSongs,
+            heartbreakSongs = result.heartbreakSongs,
+            cheerfulSongs = result.cheerfulSongs,
+            relaxingSongs = result.relaxingSongs,
+            reflectiveSongs = result.reflectiveSongs,
             navController = navController,
             onSongClick = { song ->
                 // Start playing the song and navigate to detail
@@ -171,85 +160,205 @@ fun SongScreen(viewModel: SongViewModel = viewModel(), navController: NavControl
             modifier = Modifier.padding(16.dp),
             color = Color.Red
         )
-        else -> {
-            Text(
-                text = "Không có dữ liệu!",
-                modifier = Modifier.padding(16.dp),
-                color = Color.Red
-            )
-        }
     }
 }
 
 @Composable
-fun SongList(songs: List<Song>, navController: NavController, onSongClick: (Song) -> Unit) {
-    // Add padding at the bottom to ensure content isn't covered by mini player
+fun CategorySongList(
+    randomSongs: List<Song>,
+    heartbreakSongs: List<Song>,
+    cheerfulSongs: List<Song>,
+    relaxingSongs: List<Song>,
+    reflectiveSongs: List<Song>,
+    navController: NavController,
+    onSongClick: (Song) -> Unit
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(10.dp)
+            .padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        items(songs) { song ->
-            SongItem(song, onSongClick)
+        // Featured random songs section
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Bài Hát Đề Xuất",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(randomSongs) { song ->
+                    FeatureSongItem(song, onSongClick)
+                }
+            }
         }
-        // Add some space at the bottom to prevent content being hidden by mini player
+
+        // Heartbreak category
+        item {
+            CategorySection(
+                title = "Thất Tình",
+                songs = heartbreakSongs,
+                onSongClick = onSongClick
+            )
+        }
+
+        // Cheerful category
+        item {
+            CategorySection(
+                title = "Vui Tươi",
+                songs = cheerfulSongs,
+                onSongClick = onSongClick
+            )
+        }
+
+        // Relaxing category
+        item {
+            CategorySection(
+                title = "Thư Giãn",
+                songs = relaxingSongs,
+                onSongClick = onSongClick
+            )
+        }
+
+        // Reflective category
+        item {
+            CategorySection(
+                title = "Suy",
+                songs = reflectiveSongs,
+                onSongClick = onSongClick
+            )
+        }
+
+        // Add space at the bottom for mini player
         item { Spacer(modifier = Modifier.height(70.dp)) }
     }
 }
 
 @Composable
-fun SongItem(song: Song, onSongClick: (Song) -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        onClick = { onSongClick(song) },
-        elevation = CardDefaults.cardElevation(4.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(8.dp)
-        ) {
-            Row {
-                LoadImage(url = song.image)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-                ) {
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
-                    )
+fun CategorySection(
+    title: String,
+    songs: List<Song>,
+    onSongClick: (Song) -> Unit
+) {
+    Column {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
 
-                    Text(
-                        text = song.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.Gray
-                    )
-                }
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(songs) { song ->
+                CategorySongItem(song, onSongClick)
             }
         }
     }
 }
 
 @Composable
-fun LoadImage(url: String) {
-    AsyncImage(
-        model = ImageRequest.Builder(LocalContext.current)
-            .data(url)
-            .crossfade(true)
-            .memoryCachePolicy(CachePolicy.ENABLED)
-            .build(),
-        placeholder = painterResource(R.drawable.mee_music_logo),
-        error = painterResource(R.drawable.mee_music_logo),
-        contentDescription = "Ảnh tải từ mạng",
-        contentScale = ContentScale.Crop,
+fun FeatureSongItem(song: Song, onSongClick: (Song) -> Unit) {
+    Card(
         modifier = Modifier
-            .width(50.dp)
-            .height(50.dp)
-            .clip(RoundedCornerShape(15.dp))
-    )
+            .width(160.dp),
+        onClick = { onSongClick(song) },
+        elevation = CardDefaults.cardElevation(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(song.image)
+                    .crossfade(true)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .build(),
+                placeholder = painterResource(R.drawable.mee_music_logo),
+                error = painterResource(R.drawable.mee_music_logo),
+                contentDescription = "Album art",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(12.dp))
+            )
+
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategorySongItem(song: Song, onSongClick: (Song) -> Unit) {
+    Card(
+        modifier = Modifier
+            .width(140.dp),
+        onClick = { onSongClick(song) },
+        elevation = CardDefaults.cardElevation(2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(song.image)
+                    .crossfade(true)
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .build(),
+                placeholder = painterResource(R.drawable.mee_music_logo),
+                error = painterResource(R.drawable.mee_music_logo),
+                contentDescription = "Album art",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(8.dp))
+            )
+
+            Column(modifier = Modifier.padding(8.dp)) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = song.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -258,7 +367,7 @@ fun LoadingScreen() {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         CircularProgressIndicator(
@@ -270,7 +379,7 @@ fun LoadingScreen() {
         Text(
             text = "MeeMusic đang tải dữ liệu...",
             style = MaterialTheme.typography.bodyLarge,
-            color = Color.Black
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }

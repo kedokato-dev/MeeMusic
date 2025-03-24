@@ -10,7 +10,13 @@ import kotlinx.coroutines.launch
 
 sealed class SongState {
     object Loading : SongState()
-    data class Success(val songs: List<Song>) : SongState()
+    data class Success(
+        val randomSongs: List<Song>,
+        val heartbreakSongs: List<Song>,
+        val cheerfulSongs: List<Song>,
+        val relaxingSongs: List<Song>,
+        val reflectiveSongs: List<Song>
+    ) : SongState()
     data class Error(val message: String) : SongState()
 }
 
@@ -19,7 +25,7 @@ class SongViewModel(private val repository: SongRepository) : ViewModel() {
     val state: StateFlow<SongState> = _state.asStateFlow()
 
     init {
-        fetchSongs() // Gọi API ngay khi ViewModel được tạo
+        fetchSongs()
     }
 
     fun fetchSongs() {
@@ -27,10 +33,28 @@ class SongViewModel(private val repository: SongRepository) : ViewModel() {
             _state.value = SongState.Loading
             try {
                 Log.d("SongViewModel", "📢 Đang gọi API lấy danh sách bài hát...")
-                val result = repository.getSongs() // Gọi API từ Repository
-                Log.d("SongViewModel", "✅ API trả về: $result")
-                if (result != null && result.isNotEmpty()) {
-                    _state.value = SongState.Success(result)
+                val allSongs = repository.getSongs()
+                Log.d("SongViewModel", "✅ API trả về: $allSongs")
+
+                if (allSongs != null && allSongs.isNotEmpty()) {
+                    // Get 10 random songs
+                    val randomSongs = allSongs.shuffled().take(10)
+
+                    // Categorize songs based on their properties
+                    // For demonstration, we'll categorize randomly based on ID
+                    // In a real app, you'd categorize based on actual genres or moods
+                    val heartbreakSongs = allSongs.filter { it.id.hashCode() % 4 == 0 }
+                    val cheerfulSongs = allSongs.filter { it.id.hashCode() % 4 == 1 }
+                    val relaxingSongs = allSongs.filter { it.id.hashCode() % 4 == 2 }
+                    val reflectiveSongs = allSongs.filter { it.id.hashCode() % 4 == 3 }
+
+                    _state.value = SongState.Success(
+                        randomSongs = randomSongs,
+                        heartbreakSongs = heartbreakSongs,
+                        cheerfulSongs = cheerfulSongs,
+                        relaxingSongs = relaxingSongs,
+                        reflectiveSongs = reflectiveSongs
+                    )
                 } else {
                     _state.value = SongState.Error("Không có dữ liệu!")
                 }
