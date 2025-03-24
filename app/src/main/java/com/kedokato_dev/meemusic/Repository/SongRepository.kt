@@ -47,4 +47,8 @@ class SongRepository {
 
         return songs.random()
     }
+
+    suspend fun getSongById(songId: String): Song? {
+        return getSongs()?.find { it.id == songId }
+    }
 }
