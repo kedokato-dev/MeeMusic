@@ -4,14 +4,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun MainScreen() {
-    val navController = rememberNavController()
+fun MainScreen(navController: NavHostController = rememberNavController()) {
     val currentBackStackEntry = navController.currentBackStackEntryAsState().value
     // Kiểm tra nếu không phải màn hình DetailSong thì hiển thị BottomNavigationBar
+
     val showBottomBar = currentBackStackEntry?.destination?.route?.startsWith("detailSong") == false
 
     Scaffold(

@@ -46,12 +46,6 @@ class MusicService : Service() {
     private val ACTION_NEXT = "com.kedokato_dev.meemusic.ACTION_NEXT"
     private val ACTION_CLOSE = "com.kedokato_dev.meemusic.ACTION_CLOSE"
 
-//    private val ACTION_LOOP_ON = "com.kedokato_dev.meemusic.LOOP_ON"
-//    private val ACTION_LOOP_OFF = "com.kedokato_dev.meemusic.LOOP_OFF"
-//    private val ACTION_SHUFFLE_ON = "com.kedokato_dev.meemusic.SHUFFLE_ON"
-//    private val ACTION_SHUFFLE_OFF = "com.kedokato_dev.meemusic.SHUFFLE_OFF"
-
-    private var mediaPlayer: MediaPlayer? = null
     private var mediaSession: MediaSessionCompat? = null
     private val binder = LocalBinder()
 
@@ -210,7 +204,7 @@ class MusicService : Service() {
                     currentSongId?.let { SongRepository().getSongs()?.find { song -> song.id == currentSongId } }
                 } else {
                     // Normal next song behavior
-                    SongRepository().getNextSong(currentSongId)
+                    SongRepository().getPreviousSong(currentSongId)
                 }
             }
 
@@ -413,6 +407,10 @@ class MusicService : Service() {
         // Create an intent for launching the app
         val contentIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // Add parameter to indicate coming from notification
+            putExtra("FROM_NOTIFICATION", true)
+            // Also add current song ID to ensure we open the right detail screen
+            putExtra("SONG_ID", currentSongId)
         }
         val pendingContentIntent = PendingIntent.getActivity(
             this, 0, contentIntent,

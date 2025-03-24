@@ -64,7 +64,7 @@ import com.kedokato_dev.meemusic.screens.MainViewModel
 import kotlin.compareTo
 
 @Composable
-fun DetailSongScreen(song: Song) {
+fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false) {
     val context = LocalContext.current
     val musicPlayerViewModel: MusicPlayerViewModel = viewModel()
     val mainViewModel: MainViewModel =
@@ -76,34 +76,36 @@ fun DetailSongScreen(song: Song) {
     var currentDisplayedSong by remember { mutableStateOf(song) }
 
     LaunchedEffect(Unit) {
-        // Đăng ký bộ nhận vị trí cho cả hai trường hợp
+        // Register position receiver in both cases
         musicPlayerViewModel.registerPositionReceiver(context)
 
-        // Kiểm tra xem bài hát hiện tại đã được tải hay chưa
+        // Check if the current song is already loaded
         val isSameSong = currentSongInMainViewModel?.id == song.id
 
-        if (!isSameSong) {
-            // Nếu là bài hát mới, phát từ đầu
-            val intent = Intent(context, MusicService::class.java).apply {
-                action = "PLAY"
-                putExtra("SONG_PATH", song.source)
-                putExtra("SONG_TITLE", song.title)
-                putExtra("SONG_ARTIST", song.artist)
-                putExtra("SONG_IMAGE", song.image)
-                putExtra("SONG_ID", song.id)
+        // Only start/resume playback if not coming from MiniPlayer
+        if (!fromMiniPlayer) {
+            if (!isSameSong) {
+                // If it's a new song, play from beginning
+                val intent = Intent(context, MusicService::class.java).apply {
+                    action = "PLAY"
+                    putExtra("SONG_PATH", song.source)
+                    putExtra("SONG_TITLE", song.title)
+                    putExtra("SONG_ARTIST", song.artist)
+                    putExtra("SONG_IMAGE", song.image)
+                    putExtra("SONG_ID", song.id)
+                }
+                context.startService(intent)
+                mainViewModel.updateCurrentSong(song)
+                mainViewModel.updatePlaybackState(true)
+            } else if (!isPlayingInMainViewModel) {
+                // If same song but paused, resume playback
+                val intent = Intent(context, MusicService::class.java).apply {
+                    action = "RESUME"
+                }
+                context.startService(intent)
+                mainViewModel.updatePlaybackState(true)
             }
-            context.startService(intent)
-            mainViewModel.updateCurrentSong(song)
-            mainViewModel.updatePlaybackState(true)
-        } else if (!isPlayingInMainViewModel) {
-            // Nếu cùng bài hát nhưng đang tạm dừng, tiếp tục phát
-            val intent = Intent(context, MusicService::class.java).apply {
-                action = "RESUME"
-            }
-            context.startService(intent)
-            mainViewModel.updatePlaybackState(true)
         }
-
     }
 
     DisposableEffect(Unit) {

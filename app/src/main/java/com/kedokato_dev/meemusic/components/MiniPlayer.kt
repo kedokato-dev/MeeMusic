@@ -38,15 +38,17 @@ fun MiniPlayer(
     song: Song?,
     isPlaying: Boolean,
     onPlayPauseClick: () -> Unit,
-    onPlayerClick: (Song) -> Unit
+    onPlayerClick: (Song) -> Unit,
+    onNextClick: () -> Unit,
+    onPreviousClick: () -> Unit
 ) {
-    song?.let {
+    song?.let { currenntSong ->
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
                 .background(Color.DarkGray)
-                .clickable { onPlayerClick(it) }
+                .clickable { onPlayerClick(currenntSong) }
         ) {
             Row(
                 modifier = Modifier
@@ -56,7 +58,7 @@ fun MiniPlayer(
             ) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
-                        .data(it.image)
+                        .data(currenntSong.image)
                         .crossfade(true)
                         .build(),
                     contentDescription = "Album art",
@@ -72,7 +74,7 @@ fun MiniPlayer(
                         .padding(horizontal = 12.dp)
                 ) {
                     Text(
-                        text = it.title,
+                        text =currenntSong.title,
                         style = TextStyle(
                             color = Color.White,
                             fontSize = 14.sp,
@@ -82,13 +84,23 @@ fun MiniPlayer(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = it.artist,
+                        text = currenntSong.artist,
                         style = TextStyle(
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 12.sp
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                IconButton(onClick = onPreviousClick) {
+                    Icon(
+                        painter = painterResource(
+                                R.drawable.skip_previous_24dp_e3e3e3_fill0_wght400_grad0_opsz24
+                        ),
+                        contentDescription = "Previous",
+                        tint = Color.White
                     )
                 }
 
@@ -104,7 +116,18 @@ fun MiniPlayer(
                         tint = Color.White
                     )
                 }
+                IconButton(onClick = onNextClick) {
+                    Icon(
+                        painter = painterResource(
+                            R.drawable.skip_next_24dp_e3e3e3_fill0_wght400_grad0_opsz24
+                        ),
+                        contentDescription = "Next",
+                        tint = Color.White
+                    )
+                }
             }
         }
     }
 }
+
+

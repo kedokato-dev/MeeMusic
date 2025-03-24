@@ -37,15 +37,20 @@ fun AppNavigation(navController: NavHostController, modifier: Modifier = Modifie
             LibraryScreen()
         }
         composable(
-            route = "detailSong/{songJson}",
-            arguments = listOf(navArgument("songJson") { type = NavType.StringType })
+            "detailSong/{songJson}?fromMiniPlayer={fromMiniPlayer}",
+            arguments = listOf(
+                navArgument("songJson") { type = NavType.StringType },
+                navArgument("fromMiniPlayer") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
         ) { backStackEntry ->
-            val songJson = backStackEntry.arguments?.getString("songJson")?.let { encodedJson ->
-                URLDecoder.decode(encodedJson, StandardCharsets.UTF_8.toString())
-            } ?: return@composable
-
-            val song = Gson().fromJson(songJson, Song::class.java)
-            DetailSongScreen(song = song)
+            val songJson = backStackEntry.arguments?.getString("songJson") ?: ""
+            val fromMiniPlayer = backStackEntry.arguments?.getBoolean("fromMiniPlayer") ?: false
+            val decodedJson = URLDecoder.decode(songJson, StandardCharsets.UTF_8.toString())
+            val song = Gson().fromJson(decodedJson, Song::class.java)
+            DetailSongScreen(song = song, fromMiniPlayer = fromMiniPlayer)
         }
     }
 }

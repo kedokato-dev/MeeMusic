@@ -22,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -60,6 +61,14 @@ fun HomeScreen(navController: NavController) {
     val isPlaying by mainViewModel.isPlaying.collectAsState()
     val context = LocalContext.current
 
+    // Register the broadcast receiver to listen for song changes
+    DisposableEffect(context) {
+        mainViewModel.registerMusicEventReceiver(context)
+        onDispose {
+            mainViewModel.unregisterMusicEventReceiver(context)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Song list takes most of the screen
@@ -84,7 +93,7 @@ fun HomeScreen(navController: NavController) {
                             // Resume music
                             val intent = Intent(context, MusicService::class.java).apply {
                                 action = "RESUME"
-                                putExtra("SEEK_POSITION", 122L) // This can be improved by storing current position
+                                putExtra("SEEK_POSITION", 0L) // This can be improved by storing current position
                             }
                             context.startService(intent)
                             mainViewModel.updatePlaybackState(true)
@@ -94,11 +103,25 @@ fun HomeScreen(navController: NavController) {
                         // Navigate to detail screen without restarting playback
                         val songJson = Gson().toJson(song)
                         val encodedSongJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
-                        navController.navigate("detailSong/$encodedSongJson") {
-                            // Prevent multiple copies of the same destination in the back stack
+                        navController.navigate("detailSong/$encodedSongJson?fromMiniPlayer=true") {
                             launchSingleTop = true
-                            // We don't need to change playback state, just navigate
                         }
+                    },
+                    onNextClick = {
+                        // Play next song
+                        val intent = Intent(context, MusicService::class.java).apply {
+                            action = "NEXT"
+                        }
+                        context.startService(intent)
+                        mainViewModel.updatePlaybackState(true)
+                    },
+                    onPreviousClick = {
+                       // Play previous song
+                        val intent = Intent(context, MusicService::class.java).apply {
+                            action = "PREVIOUS"
+                        }
+                        context.startService(intent)
+                        mainViewModel.updatePlaybackState(true)
                     }
                 )
             }
