@@ -46,6 +46,11 @@ class MusicService : Service() {
     private val ACTION_NEXT = "com.kedokato_dev.meemusic.ACTION_NEXT"
     private val ACTION_CLOSE = "com.kedokato_dev.meemusic.ACTION_CLOSE"
 
+//    private val ACTION_LOOP_ON = "com.kedokato_dev.meemusic.LOOP_ON"
+//    private val ACTION_LOOP_OFF = "com.kedokato_dev.meemusic.LOOP_OFF"
+//    private val ACTION_SHUFFLE_ON = "com.kedokato_dev.meemusic.SHUFFLE_ON"
+//    private val ACTION_SHUFFLE_OFF = "com.kedokato_dev.meemusic.SHUFFLE_OFF"
+
     private var mediaPlayer: MediaPlayer? = null
     private var mediaSession: MediaSessionCompat? = null
     private val binder = LocalBinder()
@@ -88,6 +93,9 @@ class MusicService : Service() {
         registerReceiver(notificationActionReceiver, intentFilter)
     }
 
+    private var isLoopEnabled = false
+    private var isShuffleEnabled = false
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "PLAY" -> {
@@ -117,6 +125,31 @@ class MusicService : Service() {
                 playPreviousSong()
             }
             ACTION_CLOSE -> closeService()
+
+            "LOOP_ON" -> {
+                isLoopEnabled = true
+                broadcastEvent("LOOP_ON")
+                // Setting the repeat mode on ExoPlayer
+                exoPlayer?.repeatMode = Player.REPEAT_MODE_ONE
+
+            }
+            "LOOP_OFF" -> {
+                isLoopEnabled = false
+                broadcastEvent("LOOP_OFF")
+                // Turning off repeat mode
+                exoPlayer?.repeatMode = Player.REPEAT_MODE_OFF
+
+            }
+            "SHUFFLE_ON" -> {
+                isShuffleEnabled = true
+                broadcastEvent("SHUFFLE_ON")
+
+            }
+            "SHUFFLE_OFF" -> {
+                isShuffleEnabled = false
+                broadcastEvent("SHUFFLE_OFF")
+
+            }
         }
 
         return START_NOT_STICKY
@@ -124,9 +157,21 @@ class MusicService : Service() {
 
 
     private fun playNextSong() {
-        Log.d("MusicService", "Bắt đầu tìm bài hát tiếp theo với currentSongId: $currentSongId")
         CoroutineScope(Dispatchers.IO).launch {
-            val nextSong = SongRepository().getNextSong(currentSongId)
+            val nextSong = if (isShuffleEnabled) {
+                // Play a random song if shuffle is enabled
+                SongRepository().playRandomSong()
+            } else {
+                // Play next song in sequence, or the same song if loop is enabled
+                if (isLoopEnabled) {
+                    // For single song loop, just restart the current song
+                    currentSongId?.let { SongRepository().getSongs()?.find { song -> song.id == currentSongId } }
+                } else {
+                    // Normal next song behavior
+                    SongRepository().getNextSong(currentSongId)
+                }
+            }
+
             nextSong?.let {
                 withContext(Dispatchers.Main) {
                     playSong(it.source)
@@ -153,9 +198,22 @@ class MusicService : Service() {
     }
 
     private fun playPreviousSong() {
-        Log.d("MusicService", "Bắt đầu tìm bài hát trước với currentSongId: $currentSongId")
+
         CoroutineScope(Dispatchers.IO).launch {
-            val previousSong = SongRepository().getPreviousSong(currentSongId)
+            val previousSong = if (isShuffleEnabled) {
+                // Play a random song if shuffle is enabled
+                SongRepository().playRandomSong()
+            } else {
+                // Play next song in sequence, or the same song if loop is enabled
+                if (isLoopEnabled) {
+                    // For single song loop, just restart the current song
+                    currentSongId?.let { SongRepository().getSongs()?.find { song -> song.id == currentSongId } }
+                } else {
+                    // Normal next song behavior
+                    SongRepository().getNextSong(currentSongId)
+                }
+            }
+
             previousSong?.let {
                 withContext(Dispatchers.Main) {
                     playSong(it.source)
@@ -193,6 +251,12 @@ class MusicService : Service() {
     private fun broadcastEvent(action: String) {
         val intent = Intent("MUSIC_EVENT")
         intent.putExtra("ACTION", action)
+        // Include current state for loop and shuffle
+        if (action == "LOOP_ON" || action == "LOOP_OFF" ||
+            action == "SHUFFLE_ON" || action == "SHUFFLE_OFF") {
+            intent.putExtra("LOOP_ENABLED", isLoopEnabled)
+            intent.putExtra("SHUFFLE_ENABLED", isShuffleEnabled)
+        }
         sendBroadcast(intent)
     }
 
@@ -221,7 +285,14 @@ class MusicService : Service() {
                             broadcastEvent("LOADED")
                         }
                         Player.STATE_ENDED -> {
-                            broadcastEvent("COMPLETED")
+                            if (isLoopEnabled) {
+                                // If loop is enabled, replay the same song
+                                exoPlayer?.seekTo(0)
+                                exoPlayer?.playWhenReady = true
+                            } else {
+                                // Otherwise play next song (which will use shuffle if enabled)
+                                playNextSong()
+                            }
                         }
                     }
                 }

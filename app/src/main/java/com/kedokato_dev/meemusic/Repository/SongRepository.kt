@@ -40,4 +40,11 @@ class SongRepository {
             songs.lastOrNull()
         }
     }
+
+    suspend fun playRandomSong(): Song? {
+        val songs = getSongs()
+        if (songs.isNullOrEmpty()) return null
+
+        return songs.random()
+    }
 }

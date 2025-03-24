@@ -172,9 +172,6 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
         mutableStateOf(Brush.verticalGradient(listOf(Color.Black, Color.DarkGray)))
     }
 
-//    val currentPosition by musicPlayerViewModel.currentPosition
-//    val duration by musicPlayerViewModel.duration
-
     LaunchedEffect(song.image) {
         val imageLoader = ImageLoader(context)
         val request = ImageRequest.Builder(context)
@@ -301,6 +298,11 @@ fun MusicControls(
     time: Int,
     viewModel: MusicPlayerViewModel
 ){
+
+    var isLoopEnabled by remember { mutableStateOf(false) }
+    var isRandomEnabled by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -342,6 +344,57 @@ fun MusicControls(
                 color = Color.White,
                 fontSize = 14.sp
             )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            // Loop button
+            IconButton(
+                onClick = {
+                    isLoopEnabled = !isLoopEnabled
+                    val intent = Intent(context, MusicService::class.java).apply {
+                        action = if (isLoopEnabled) "LOOP_ON" else "LOOP_OFF"
+                    }
+                    context.startService(intent)
+                }
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = if (isLoopEnabled)
+                            R.drawable.repeat_one
+                        else
+                            R.drawable.repeat
+                    ),
+                    contentDescription = "Loop",
+                    tint = if (isLoopEnabled) Color(0xFFFCFFFC) else Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+
+            // Random button
+            IconButton(
+                onClick = {
+                    isRandomEnabled = !isRandomEnabled
+                    val intent = Intent(context, MusicService::class.java).apply {
+                        action = if (isRandomEnabled) "SHUFFLE_ON" else "SHUFFLE_OFF"
+                    }
+                    context.startService(intent)
+                }
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = R.drawable.shuffle
+                    ),
+                    contentDescription = "Shuffle",
+                    tint = if (isRandomEnabled) Color(0xFF03A9F4) else Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
