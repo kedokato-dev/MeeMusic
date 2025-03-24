@@ -144,6 +144,24 @@ class MusicService : Service() {
                 broadcastEvent("SHUFFLE_OFF")
 
             }
+
+            "GET_CURRENT_SONG" -> {
+                // Broadcast current song info
+                if (currentSongId != null) {
+                    val intent = Intent("MUSIC_EVENT")
+                    intent.putExtra("ACTION", "CURRENT_SONG")
+                    intent.putExtra("SONG_ID", currentSongId)
+                    intent.putExtra("SONG_TITLE", currentSongTitle)
+                    intent.putExtra("SONG_ARTIST", currentSongArtist)
+                    intent.putExtra("SONG_IMAGE", currentSongImage)
+                    intent.putExtra("IS_PLAYING", isPlaying)
+                    sendBroadcast(intent)
+                }
+            }
+
+
+
+
         }
 
         return START_NOT_STICKY

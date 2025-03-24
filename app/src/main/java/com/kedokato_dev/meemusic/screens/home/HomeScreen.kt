@@ -54,6 +54,11 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
+    LaunchedEffect(Unit) {
+        // Force refresh current song data when returning to this screen
+        mainViewModel.refreshCurrentSongData(context)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Song list takes most of the screen

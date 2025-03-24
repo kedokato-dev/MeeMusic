@@ -7,9 +7,15 @@ import android.content.IntentFilter
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.kedokato_dev.meemusic.Models.Song
+import com.kedokato_dev.meemusic.MusicService
+import com.kedokato_dev.meemusic.Repository.SongRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainViewModel : ViewModel() {
     private val _currentSong = MutableStateFlow<Song?>(null)
@@ -68,6 +74,28 @@ class MainViewModel : ViewModel() {
                             _currentSong.value = updatedSong
                             _isPlaying.value = true
                         }
+                        "CURRENT_SONG" -> {
+                            val songId = intent.getStringExtra("SONG_ID")
+                            // Update with current song data
+                            if (songId != null) {
+                                val songTitle = intent.getStringExtra("SONG_TITLE") ?: ""
+                                val songArtist = intent.getStringExtra("SONG_ARTIST") ?: ""
+                                val songImage = intent.getStringExtra("SONG_IMAGE") ?: ""
+                                val isPlaying = intent.getBooleanExtra("IS_PLAYING", false)
+
+                                // Launch coroutine to fetch the full song object
+                                viewModelScope.launch(Dispatchers.IO) {
+                                    val songRepository = SongRepository()
+                                    val song = songRepository.getSongById(songId)
+                                    if (song != null) {
+                                        withContext(Dispatchers.Main) {
+                                            _currentSong.value = song
+                                            _isPlaying.value = isPlaying
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -88,6 +116,18 @@ class MainViewModel : ViewModel() {
             musicEventReceiver = null
         }
     }
+
+    fun refreshCurrentSongData(context: Context) {
+        // Create an Intent to send a "GET_CURRENT_SONG" action to the service
+        val intent = Intent(context, MusicService::class.java).apply {
+            action = "GET_CURRENT_SONG"
+        }
+        context.startService(intent)
+        // The service will respond by broadcasting the current song info
+        // which will be picked up by the existing registerMusicEventReceiver
+    }
+
+
 
     override fun onCleared() {
         super.onCleared()
