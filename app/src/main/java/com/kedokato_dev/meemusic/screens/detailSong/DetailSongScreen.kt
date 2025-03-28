@@ -147,6 +147,10 @@ fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false, navController:
 
                         // Cập nhật trong MainViewModel
                         mainViewModel.updateCurrentSong(updatedSong)
+                    }else if (action == "DOWNLOAD_COMPLETE") {
+                        val filePath = intent.getStringExtra("FILE_PATH")
+                        Toast.makeText(context, "Lưu nhạc thành công ❤ ", Toast.LENGTH_LONG).show()
+                        // Update UI or perform any necessary actions
                     }
                 }
             }
@@ -233,7 +237,7 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navControll
 
             IconButton(
                 onClick = {
-                    Toast.makeText(context, " Đang tải bài hát ${song.title}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Đang tải bài hát ${song.title}", Toast.LENGTH_SHORT).show()
                     val intent = Intent(context, MusicService::class.java).apply {
                         action = "DOWNLOAD_SONG"
                         putExtra("SONG_ID", song.id)
@@ -292,13 +296,40 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navControll
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = song.artist,
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    color = Color.White.copy(alpha = 0.7f)
+            Row (
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ){
+                Text(
+                    text = song.artist,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
                 )
-            )
+
+                IconButton(
+                    onClick = Toast.makeText(context, "Đã thêm vào yêu thích", Toast.LENGTH_SHORT)::show,
+                    modifier = Modifier
+                ) {
+                    Icon(
+                        painter = painterResource(
+                            id = if (true)
+                                R.drawable.favorite_border
+                            else
+                                R.drawable.favorite
+                        ),
+                        contentDescription = "Favorite/Unfavorite",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color(0xFFE91E63),
+                    )
+                }
+
+
+            }
+
+
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -365,7 +396,6 @@ fun MusicControls(
     time: Int,
     viewModel: MusicPlayerViewModel
 ) {
-
     var isLoopEnabled by remember { mutableStateOf(false) }
     var isRandomEnabled by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -376,8 +406,6 @@ fun MusicControls(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val context = LocalContext.current
-
         Slider(
             colors = SliderDefaults.colors(
                 thumbColor = Color.White,
@@ -396,7 +424,6 @@ fun MusicControls(
             modifier = Modifier.fillMaxWidth(0.9f)
         )
 
-        // Hiển thị thời gian nhạc
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -416,11 +443,11 @@ fun MusicControls(
         Spacer(modifier = Modifier.height(20.dp))
 
         Row(
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(0.7f)
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly, // Căn đều khoảng cách giữa các nút
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Loop button
             IconButton(
                 onClick = {
                     isLoopEnabled = !isLoopEnabled
@@ -432,10 +459,7 @@ fun MusicControls(
             ) {
                 Icon(
                     painter = painterResource(
-                        id = if (isLoopEnabled)
-                            R.drawable.repeat_one
-                        else
-                            R.drawable.repeat
+                        id = if (isLoopEnabled) R.drawable.repeat_one else R.drawable.repeat
                     ),
                     contentDescription = "Loop",
                     tint = if (isLoopEnabled) Color(0xFFFCFFFC) else Color.White,
@@ -443,45 +467,14 @@ fun MusicControls(
                 )
             }
 
-            // Random button
-            IconButton(
-                onClick = {
-                    isRandomEnabled = !isRandomEnabled
-                    val intent = Intent(context, MusicService::class.java).apply {
-                        action = if (isRandomEnabled) "SHUFFLE_ON" else "SHUFFLE_OFF"
-                    }
-                    context.startService(intent)
-                }
-            ) {
-                Icon(
-                    painter = painterResource(
-                        id = R.drawable.shuffle
-                    ),
-                    contentDescription = "Shuffle",
-                    tint = if (isRandomEnabled) Color(0xFF03A9F4) else Color.White,
-                    modifier = Modifier.size(48.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // Điều khiển nhạc
-        Row(
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
             IconButton(
                 onClick = onPrevious,
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
+                modifier = Modifier.size(60.dp)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.skip_previous_24dp_e3e3e3_fill0_wght400_grad0_opsz24),
                     contentDescription = "Previous",
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(48.dp),
                     tint = Color.White
                 )
             }
@@ -491,6 +484,7 @@ fun MusicControls(
                 modifier = Modifier
                     .size(90.dp)
                     .clip(CircleShape)
+                    .background(Color.White) // Thêm nền trắng
                     .scale(if (isPlaying) 1.1f else 1.0f)
             ) {
                 Icon(
@@ -501,27 +495,44 @@ fun MusicControls(
                             R.drawable.play_arrow_24dp_e3e3e3_fill0_wght400_grad0_opsz24
                     ),
                     contentDescription = "Play/Pause",
-                    modifier = Modifier.size(60.dp),
-                    tint = Color.White
+                    modifier = Modifier.size(64.dp),
+                    tint = Color.Black
                 )
             }
 
             IconButton(
                 onClick = onNext,
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(CircleShape)
+                modifier = Modifier.size(60.dp)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.skip_next_24dp_e3e3e3_fill0_wght400_grad0_opsz24),
                     contentDescription = "Next",
-                    modifier = Modifier.size(40.dp),
+                    modifier = Modifier.size(48.dp),
                     tint = Color.White
                 )
             }
+
+            IconButton(
+                onClick = {
+                    isRandomEnabled = !isRandomEnabled
+                    val intent = Intent(context, MusicService::class.java).apply {
+                        action = if (isRandomEnabled) "SHUFFLE_ON" else "SHUFFLE_OFF"
+                    }
+                    context.startService(intent)
+                }
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.shuffle),
+                    contentDescription = "Shuffle",
+                    tint = if (isRandomEnabled) Color(0xFF03A9F4) else Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
         }
+
     }
-}
+    }
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
