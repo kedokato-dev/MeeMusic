@@ -26,6 +26,10 @@ import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.google.gson.Gson
 import com.kedokato_dev.meemusic.MusicService
 import com.kedokato_dev.meemusic.Models.Song
@@ -368,6 +372,9 @@ fun CategorySongItem(song: Song, onSongClick: (Song) -> Unit) {
 
 @Composable
 fun LoadingScreen() {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.loading))
+    val progress by animateLottieCompositionAsState(composition)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -375,10 +382,10 @@ fun LoadingScreen() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(50.dp),
-            color = MaterialTheme.colorScheme.primary,
-            strokeWidth = 4.dp
+        LottieAnimation(
+            composition = composition,
+            progress = { progress },
+            modifier = Modifier.size(200.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(

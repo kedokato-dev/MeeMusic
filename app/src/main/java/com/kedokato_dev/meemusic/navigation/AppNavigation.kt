@@ -57,7 +57,7 @@ fun AppNavigation(navController: NavHostController, modifier: Modifier = Modifie
             val fromMiniPlayer = backStackEntry.arguments?.getBoolean("fromMiniPlayer") ?: false
             val decodedJson = URLDecoder.decode(songJson, StandardCharsets.UTF_8.toString())
             val song = Gson().fromJson(decodedJson, Song::class.java)
-            DetailSongScreen(song = song, fromMiniPlayer = fromMiniPlayer)
+            DetailSongScreen(song = song, fromMiniPlayer = fromMiniPlayer, navController)
         }
     }
 }

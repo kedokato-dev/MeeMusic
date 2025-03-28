@@ -56,6 +56,9 @@ dependencies {
     implementation ("androidx.palette:palette-ktx:1.0.0")
     implementation ("androidx.media:media:1.6.0")
 
+    implementation("com.airbnb.android:lottie-compose:6.0.0")
+    implementation ("androidx.work:work-runtime-ktx:2.8.1")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

@@ -1,11 +1,15 @@
 package com.kedokato_dev.meemusic.screens.detailSong
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,10 +51,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import coil.ImageLoader
 import coil.compose.AsyncImage
@@ -64,7 +70,7 @@ import com.kedokato_dev.meemusic.screens.MainViewModel
 import kotlin.compareTo
 
 @Composable
-fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false) {
+fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false, navController: NavController) {
     val context = LocalContext.current
     val musicPlayerViewModel: MusicPlayerViewModel = viewModel()
     val mainViewModel: MainViewModel =
@@ -161,13 +167,17 @@ fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false) {
     }
 
     // Hiển thị giao diện người dùng
-    PlaySong(song = currentDisplayedSong, musicPlayerViewModel = musicPlayerViewModel)
+    PlaySong(
+        song = currentDisplayedSong,
+        musicPlayerViewModel = musicPlayerViewModel,
+        navController
+    )
 
 }
 
 
 @Composable
-fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
+fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navController: NavController) {
     val context = LocalContext.current
     val isPlaying by musicPlayerViewModel.isPlaying.collectAsState()
     var backgroundBrush by remember {
@@ -185,7 +195,8 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
         result?.let {
             val bitmap = it.toBitmap()
             Palette.from(bitmap).generate { palette ->
-                val dominantColor = palette?.dominantSwatch?.rgb?.let { Color(it) } ?: Color.DarkGray
+                val dominantColor =
+                    palette?.dominantSwatch?.rgb?.let { Color(it) } ?: Color.DarkGray
                 val secondaryColor = palette?.mutedSwatch?.rgb?.let { Color(it) } ?: Color.Black
                 backgroundBrush = Brush.verticalGradient(listOf(dominantColor, secondaryColor))
             }
@@ -196,12 +207,63 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundBrush)
-            .padding(16.dp)
     ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            // Back button positioned at the top left
+            IconButton(
+                onClick = {
+                    navController.popBackStack()
+                },
+                modifier = Modifier
+                    .padding(16.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.keyboard_backspace),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+
+            IconButton(
+                onClick = {
+                    Toast.makeText(context, " Đang tải bài hát ${song.title}", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(context, MusicService::class.java).apply {
+                        action = "DOWNLOAD_SONG"
+                        putExtra("SONG_ID", song.id)
+                    }
+                    context.startService(intent)
+                },
+                modifier = Modifier
+                    .padding(16.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.download),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+
+
+        }
+
+        // Main content in the center
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .padding(top = 56.dp) // Add extra padding at top to account for back button
         ) {
             Text(
                 text = song.album,
@@ -212,6 +274,7 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                 ),
                 modifier = Modifier.alpha(0.85f)
             )
+
             Spacer(modifier = Modifier.height(20.dp))
 
             LoadImage(song.image)
@@ -226,7 +289,9 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                     color = Color.White
                 )
             )
+
             Spacer(modifier = Modifier.height(20.dp))
+
             Text(
                 text = song.artist,
                 style = TextStyle(
@@ -236,7 +301,6 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
             )
 
             Spacer(modifier = Modifier.height(20.dp))
-
 
             MusicControls(
                 isPlaying = isPlaying,
@@ -260,7 +324,8 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel) {
                 progress = musicPlayerViewModel.progress,
                 duration = musicPlayerViewModel.duration,
                 onSeek = { newProgress ->
-                    val newPosition = (newProgress * musicPlayerViewModel.duration.longValue).toLong()
+                    val newPosition =
+                        (newProgress * musicPlayerViewModel.duration.longValue).toLong()
                     musicPlayerViewModel.currentPosition.longValue = newPosition
                 },
                 time = song.duration,
@@ -299,7 +364,7 @@ fun MusicControls(
     onSeek: (Float) -> Unit,
     time: Int,
     viewModel: MusicPlayerViewModel
-){
+) {
 
     var isLoopEnabled by remember { mutableStateOf(false) }
     var isRandomEnabled by remember { mutableStateOf(false) }
@@ -474,7 +539,7 @@ fun DefaultPreView() {
             favorite = false,
             counter = 0,
             replay = 0
-        ), musicPlayerViewModel
+        ), musicPlayerViewModel, NavController(LocalContext.current)
     )
 }
 

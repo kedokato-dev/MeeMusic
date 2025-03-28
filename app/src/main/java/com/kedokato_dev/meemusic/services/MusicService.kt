@@ -26,16 +26,26 @@ import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import coil.Coil
 import coil.request.ImageRequest
 import coil.transform.CircleCropTransformation
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.Repository.SongRepository
+import com.kedokato_dev.meemusic.services.DownloadSongWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MusicService : Service() {
     private val NOTIFICATION_ID = 1
@@ -144,6 +154,19 @@ class MusicService : Service() {
                 broadcastEvent("SHUFFLE_OFF")
 
             }
+
+            "DOWNLOAD_SONG" -> {
+                val songId = intent.getStringExtra("SONG_ID")
+                songId?.let {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val song = SongRepository().getSongs()?.find { song -> song.id == it }
+                        song?.let { foundSong ->
+                            downloadSong(foundSong)
+                        }
+                    }
+                }
+            }
+
 
             "GET_CURRENT_SONG" -> {
                 // Broadcast current song info
@@ -268,6 +291,11 @@ class MusicService : Service() {
             action == "SHUFFLE_ON" || action == "SHUFFLE_OFF") {
             intent.putExtra("LOOP_ENABLED", isLoopEnabled)
             intent.putExtra("SHUFFLE_ENABLED", isShuffleEnabled)
+        }
+
+        if(action == "DOWNLOAD_COMPLETE"){
+            intent.putExtra("SONG_ID", intent.getStringExtra("SONG_ID"))
+            intent.putExtra("FILE_PATH", intent.getStringExtra("FILE_PATH"))
         }
         sendBroadcast(intent)
     }
@@ -517,5 +545,25 @@ class MusicService : Service() {
         unregisterReceiver(notificationActionReceiver)
         super.onDestroy()
     }
+
+    private fun downloadSong(song: Song) {
+        val workRequest = OneTimeWorkRequestBuilder<DownloadSongWorker>()
+            .setInputData(
+                workDataOf(
+                    "song_url" to song.source,
+                    "song_title" to song.title,
+                    "song_id" to song.id
+                )
+            )
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED) // Chỉ tải khi có mạng
+                    .build()
+            )
+            .build()
+
+        WorkManager.getInstance(this).enqueue(workRequest)
+    }
+
 
 }
