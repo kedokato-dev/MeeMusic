@@ -51,4 +51,22 @@ class SongRepository {
     suspend fun getSongById(songId: String): Song? {
         return getSongs()?.find { it.id == songId }
     }
+
+    // In SongRepository.kt
+    suspend fun searchSongs(query: String): List<Song>? {
+        if (query.isEmpty()) return emptyList()
+
+        // Get all songs first
+        val allSongs = getSongs() ?: return null
+
+        // Filter songs by title or artist containing the query (case insensitive)
+        return allSongs.filter { song ->
+            song.title.contains(query, ignoreCase = true) ||
+                    song.artist.contains(query, ignoreCase = true)
+        }
+    }
+
+
+
+
 }

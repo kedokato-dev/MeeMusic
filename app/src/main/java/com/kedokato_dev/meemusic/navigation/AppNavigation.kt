@@ -14,6 +14,7 @@ import com.kedokato_dev.meemusic.screens.library.LibraryScreen
 import com.kedokato_dev.meemusic.screens.setting.SettingScreen
 import com.kedokato_dev.meemusic.ui.screens.SearchScreen
 import java.net.URLDecoder
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 @Composable
@@ -28,7 +29,13 @@ fun AppNavigation(navController: NavHostController, modifier: Modifier = Modifie
             HomeScreen(navController)
         }
         composable("search") {
-            SearchScreen()
+          SearchScreen(
+              onSongClick = { song ->
+                  val songJson = Gson().toJson(song)
+                  val encodedJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
+                  navController.navigate("detailSong/$encodedJson?fromMiniPlayer=false")
+              }
+          )
         }
         composable("settings") {
             SettingScreen()
