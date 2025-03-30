@@ -497,19 +497,19 @@ fun MusicControls(
                 modifier = Modifier
                     .size(90.dp)
                     .clip(CircleShape)
-                    .background(Color.White) // Thêm nền trắng
+//                    .background(Color.White) // Thêm nền trắng
                     .scale(if (isPlaying) 1.1f else 1.0f)
             ) {
                 Icon(
                     painter = painterResource(
                         id = if (isPlaying)
-                            R.drawable.pause_24dp_e3e3e3_fill0_wght400_grad0_opsz24
+                            R.drawable.pause_circle_filled
                         else
-                            R.drawable.play_arrow_24dp_e3e3e3_fill0_wght400_grad0_opsz24
+                            R.drawable.play_circle
                     ),
                     contentDescription = "Play/Pause",
-                    modifier = Modifier.size(64.dp),
-                    tint = Color.Black
+                    modifier = Modifier.size(80.dp),
+                    tint = Color.White
                 )
             }
 
