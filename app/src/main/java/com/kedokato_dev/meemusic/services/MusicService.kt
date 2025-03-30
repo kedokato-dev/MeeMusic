@@ -36,6 +36,7 @@ import coil.request.ImageRequest
 import coil.transform.CircleCropTransformation
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.Repository.SongRepository
+import com.kedokato_dev.meemusic.screens.detailSong.DetailSongScreen
 import com.kedokato_dev.meemusic.services.DownloadSongWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -164,6 +165,23 @@ class MusicService : Service() {
                             downloadSong(foundSong)
                         }
                     }
+                }
+            }
+
+            // using SharedPreferences to save favorite songs
+            "ADD_TO_FAVORITES" -> {
+                val songId = intent.getStringExtra("SONG_ID")
+                songId?.let {
+                    SongRepository().saveFavoriteSong(this, it)
+                    broadcastEvent("ADDED_TO_FAVORITES")
+                }
+            }
+
+            "REMOVE_FROM_FAVORITES" -> {
+                val songId = intent.getStringExtra("SONG_ID")
+                songId?.let {
+                    SongRepository().removeFromFavorites(this, it)
+                    broadcastEvent("REMOVED_FROM_FAVORITES")
                 }
             }
 

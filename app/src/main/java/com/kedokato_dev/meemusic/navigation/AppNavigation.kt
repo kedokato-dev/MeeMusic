@@ -41,7 +41,7 @@ fun AppNavigation(navController: NavHostController, modifier: Modifier = Modifie
             SettingScreen()
         }
         composable("library") {
-            LibraryScreen()
+            LibraryScreen(navController)
         }
         composable(
             "detailSong/{songJson}?fromMiniPlayer={fromMiniPlayer}",

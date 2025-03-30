@@ -3,6 +3,7 @@ package com.kedokato_dev.meemusic.screens.home
 import SongViewModel
 import android.annotation.SuppressLint
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -64,7 +65,9 @@ fun HomeScreen(navController: NavController) {
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()
+//            .background(Color(0xFF121212))
+        ) {
             // Song list takes most of the screen
             Box(modifier = Modifier.weight(1f)) {
                 HomeContent(viewModel, navController)

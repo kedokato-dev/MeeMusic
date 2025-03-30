@@ -82,12 +82,12 @@ class MusicPlayerViewModel : ViewModel() {
 
 
 
-    fun unregisterPositionReceiver(context: Context) {
-        positionUpdateReceiver?.let {
-            context.unregisterReceiver(it)
-            positionUpdateReceiver = null
-        }
-    }
+//    fun unregisterPositionReceiver(context: Context) {
+//        positionUpdateReceiver?.let {
+//            context.unregisterReceiver(it)
+//            positionUpdateReceiver = null
+//        }
+//    }
 
     fun playSong(context: Context,  song: Song) {
         Intent(context, MusicService::class.java).also { intent ->

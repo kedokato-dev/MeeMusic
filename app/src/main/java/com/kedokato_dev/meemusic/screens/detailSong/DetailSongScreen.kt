@@ -66,6 +66,7 @@ import coil.request.SuccessResult
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.MusicService
 import com.kedokato_dev.meemusic.R
+import com.kedokato_dev.meemusic.Repository.SongRepository
 import com.kedokato_dev.meemusic.screens.MainViewModel
 import kotlin.compareTo
 
@@ -147,7 +148,7 @@ fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false, navController:
 
                         // Cập nhật trong MainViewModel
                         mainViewModel.updateCurrentSong(updatedSong)
-                    }else if (action == "DOWNLOAD_COMPLETE") {
+                    } else if (action == "DOWNLOAD_COMPLETE") {
                         val filePath = intent.getStringExtra("FILE_PATH")
                         Toast.makeText(context, "Lưu nhạc thành công ❤ ", Toast.LENGTH_LONG).show()
                         // Update UI or perform any necessary actions
@@ -184,11 +185,13 @@ fun DetailSongScreen(song: Song, fromMiniPlayer: Boolean = false, navController:
 fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navController: NavController) {
     val context = LocalContext.current
     val isPlaying by musicPlayerViewModel.isPlaying.collectAsState()
+    var isFavorite by remember { mutableStateOf(false) }
     var backgroundBrush by remember {
         mutableStateOf(Brush.verticalGradient(listOf(Color.Black, Color.DarkGray)))
     }
 
     LaunchedEffect(song.image) {
+        isFavorite = SongRepository().isFavoriteSong(context, song.id)
         val imageLoader = ImageLoader(context)
         val request = ImageRequest.Builder(context)
             .data(song.image)
@@ -237,7 +240,8 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navControll
 
             IconButton(
                 onClick = {
-                    Toast.makeText(context, "Đang tải bài hát ${song.title}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Đang tải bài hát ${song.title}", Toast.LENGTH_SHORT)
+                        .show()
                     val intent = Intent(context, MusicService::class.java).apply {
                         action = "DOWNLOAD_SONG"
                         putExtra("SONG_ID", song.id)
@@ -296,11 +300,11 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navControll
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row (
+            Row(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
-            ){
+            ) {
                 Text(
                     text = song.artist,
                     style = TextStyle(
@@ -310,15 +314,24 @@ fun PlaySong(song: Song, musicPlayerViewModel: MusicPlayerViewModel, navControll
                 )
 
                 IconButton(
-                    onClick = Toast.makeText(context, "Đã thêm vào yêu thích", Toast.LENGTH_SHORT)::show,
+                    onClick = {
+                        isFavorite = !isFavorite
+                        val intent = Intent(context, MusicService::class.java).apply {
+                            action = if (isFavorite) "ADD_TO_FAVORITES" else "REMOVE_FROM_FAVORITES"
+                            putExtra("SONG_ID", song.id)
+                        }
+                        context.startService(intent)
+                        Toast.makeText(
+                            context,
+                            if (isFavorite) "Đã thêm vào yêu thích" else "Đã xóa khỏi yêu thích",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    },
                     modifier = Modifier
                 ) {
                     Icon(
                         painter = painterResource(
-                            id = if (true)
-                                R.drawable.favorite_border
-                            else
-                                R.drawable.favorite
+                            id = if (isFavorite) R.drawable.favorite else R.drawable.favorite_border
                         ),
                         contentDescription = "Favorite/Unfavorite",
                         modifier = Modifier.size(24.dp),
@@ -531,7 +544,7 @@ fun MusicControls(
         }
 
     }
-    }
+}
 
 
 @Preview(showBackground = true, showSystemUi = true)
