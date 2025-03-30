@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,17 +36,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.google.gson.Gson
 import com.kedokato_dev.meemusic.Models.Song
 import com.kedokato_dev.meemusic.Repository.SongRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun LibraryScreen(navController: NavController) {
+    val repository = remember { SongRepository() }
+    val viewModel: LibraryViewModel = viewModel(
+        factory = LibraryViewModelFactory(repository)
+    )
+    val context = LocalContext.current
+    val favoriteSongs by viewModel.favoriteSongs.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(key1 = Unit) {
+        viewModel.loadFavoriteSongs(context)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -60,57 +77,41 @@ fun LibraryScreen(navController: NavController) {
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        FavoriteSongs(navController = navController)
-    }
-}
-
-@Composable
-fun FavoriteSongs(navController: NavController) {
-    val context = LocalContext.current
-    val repository = remember { SongRepository() }
-    var favoriteSongs by remember { mutableStateOf<List<Song>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(key1 = Unit) {
-        isLoading = true
-        favoriteSongs = withContext(Dispatchers.IO) {
-            repository.getFavoriteSongs(context)
-        }
-        isLoading = false
-    }
-
-    if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color.White)
-        }
-    } else if (favoriteSongs.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(
-                text = "Bạn chưa có bài hát yêu thích nào",
-                color = Color.Black,
-                fontSize = 18.sp
-            )
-        }
-    } else {
-        LazyColumn {
-            items(favoriteSongs) { song ->
-                SongItem(song = song, navController = navController)
-                Spacer(modifier = Modifier.height(8.dp))
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        } else if (favoriteSongs.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    text = "Bạn chưa có bài hát yêu thích nào",
+                    color = Color.Black,
+                    fontSize = 18.sp
+                )
+            }
+        } else {
+            LazyColumn {
+                items(favoriteSongs) { song ->
+                    SongItem(song = song, onSongClick = {
+                        val songJson = Gson().toJson(song)
+                        val encodedJson = URLEncoder.encode(songJson, StandardCharsets.UTF_8.toString())
+                        navController.navigate("detailSong/$encodedJson?fromMiniPlayer=false")
+                    })
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
         }
     }
 }
 
 @Composable
-fun SongItem(song: Song, navController: NavController) {
+fun SongItem(song: Song, onSongClick: (Song) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(Color(0xFF939292))
-            .clickable {
-                navController.navigate("detailSong/${song.id}")
-            }
+            .clickable { onSongClick(song) }  // This was fixed - it was missing (song)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -148,9 +149,9 @@ fun SongItem(song: Song, navController: NavController) {
     }
 }
 
-@Composable
-@Preview(showBackground = true, showSystemUi = true)
-fun LibraryScreenPreview() {
-    val navController = NavController(LocalContext.current)
-    LibraryScreen(navController = navController)
-}
+//@Composable
+//@Preview(showBackground = true, showSystemUi = true)
+//fun LibraryScreenPreview() {
+//    val navController = NavController(LocalContext.current)
+//    LibraryScreen(navController = navController)
+//}
