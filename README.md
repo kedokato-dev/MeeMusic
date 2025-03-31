@@ -1,6 +1,12 @@
 # 💿 MeeMussic 🎧
 ## 1 Sản phẩm trong kỳ thực tập tại Zen8Labs
 
+<div align="center">
+  <img src="https://private-user-images.githubusercontent.com/125746822/428480948-4e434def-34c3-4e96-8566-ee18dd61b674.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDMzOTc4OTEsIm5iZiI6MTc0MzM5NzU5MSwicGF0aCI6Ii8xMjU3NDY4MjIvNDI4NDgwOTQ4LTRlNDM0ZGVmLTM0YzMtNGU5Ni04NTY2LWVlMThkZDYxYjY3NC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwMzMxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDMzMVQwNTA2MzFaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05YTEyZTg1M2Q2M2U5MjM1YTZkMDRhZmM5MjY4ZDgzNTFlYmZiN2EyNGM4N2QyMTI5Y2I1MjY3MWE2MzNhZDMzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.BEcYabZnddtU3IVtUPL8DRGR-8p07UmmMGcrXH7tjFE" width="200"/>
+</div>
+
+
+
 MeeMussic là một ứng dụng nghe nhạc hiện đại, mang đến trải nghiệm âm nhạc tuyệt vời với giao diện thân thiện và các tính năng mạnh mẽ.
 
 ---
