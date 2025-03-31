@@ -48,23 +48,7 @@ MeeMussic là một ứng dụng nghe nhạc hiện đại, mang đến trải n
 2. Mở dự án trong Android Studio.
 3. Đồng bộ hóa Gradle và tải các phụ thuộc.
 4. Kết nối thiết bị hoặc sử dụng trình giả lập.
-5. Nhấn nút "Run" để chạy ứng dụng.
-
-## 📄 Giấy phép
-
-MeeMussic được phát hành dưới giấy phép [Apache Licese 2.0](https://github.com/kedokato-dev/MeeMusic?tab=License-1-ov-file).
-
----
-
-### 🌟 Đóng góp
-
-Chúng tôi luôn chào đón các đóng góp từ cộng đồng! Hãy tạo một pull request hoặc mở issue nếu bạn muốn cải thiện ứng dụng.
-
----
-
-### 📧 Liên hệ
-
-Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ qua email: `thocodeanhquan@gmail.com`.
+5. Nhấn nút "Run" để chạy ứng dụng và tận hưởng MeeMusic ngay thôi ☕
 
 ---
 
@@ -109,4 +93,28 @@ Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ 
 <img src="https://private-user-images.githubusercontent.com/125746822/428475719-7db91c29-d1b2-4094-9d58-eed46bbb081c.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NDMzOTczNDcsIm5iZiI6MTc0MzM5NzA0NywicGF0aCI6Ii8xMjU3NDY4MjIvNDI4NDc1NzE5LTdkYjkxYzI5LWQxYjItNDA5NC05ZDU4LWVlZDQ2YmJiMDgxYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUwMzMxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MDMzMVQwNDU3MjdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03NTMyZTJlYTg5YmQzMDczMGViNjc5ODc0NTk2NGU0MzE3NWVmMDJmMzIwODFkMTU3Y2RkOGQ2OGZiYWEwMGQ2JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.Aamd2eWugla3kpY2f2A9SKo_UpggNtBBFO-BL9WF7FE" alt="Giao diện trang chủ DarkMode" width = "600" />
 
 
-## Hãy cho dự án của tôi 1 ⭐ nếu bạn thấy nó có ích
+--- 
+## Demo
+
+
+
+---
+
+## 📄 Giấy phép
+
+MeeMussic được phát hành dưới giấy phép [Apache Licese 2.0](https://github.com/kedokato-dev/MeeMusic?tab=License-1-ov-file).
+
+---
+
+### 🌟 Đóng góp
+
+Chúng tôi luôn chào đón các đóng góp từ cộng đồng! Hãy tạo một pull request hoặc mở issue nếu bạn muốn cải thiện ứng dụng.
+
+---
+
+### 📧 Liên hệ
+
+Nếu bạn có bất kỳ câu hỏi hoặc góp ý nào, vui lòng liên hệ qua email: `thocodeanhquan@gmail.com`.
+
+---
+
